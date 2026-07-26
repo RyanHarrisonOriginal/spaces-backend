@@ -1,0 +1,116 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ContentType {
+  video
+  article
+  image
+
+  @@map("content_type")
+}
+
+enum ThingStatus {
+  idle
+  fetching
+  ready
+  error
+
+  @@map("thing_status")
+}
+
+enum SpaceView {
+  card
+  list
+
+  @@map("space_view")
+}
+
+model User {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email       String   @unique
+  displayName String?  @map("display_name")
+  themeMode   String   @default("light") @map("theme_mode")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  spaces      Space[]
+
+  @@map("users")
+}
+
+model Space {
+  id          String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String       @map("user_id") @db.Uuid
+  name        String
+  description String       @default("")
+  accent      String       @default("ink")
+  headerFont  String       @default("SpaceGrotesk") @map("header_font")
+  bgColor     String       @default("") @map("bg_color")
+  textColor   String       @default("") @map("text_color")
+  view        SpaceView    @default(card)
+  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  collections Collection[]
+
+  @@index([userId], map: "idx_spaces_user_id")
+  @@map("spaces")
+}
+
+model Collection {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  spaceId     String   @map("space_id") @db.Uuid
+  name        String
+  description String   @default("")
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  space       Space    @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  things      Thing[]
+
+  @@index([spaceId], map: "idx_collections_space_id")
+  @@map("collections")
+}
+
+model Thing {
+  id            String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  collectionId  String             @map("collection_id") @db.Uuid
+  name          String
+  description   String
+  status        ThingStatus        @default(idle)
+  sortOrder     Int                @default(0) @map("sort_order")
+  createdAt     DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  collection    Collection         @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  contentTypes  ThingContentType[]
+  gatherQueries GatherQuery[]
+
+  @@index([collectionId], map: "idx_things_collection_id")
+  @@index([status], map: "idx_things_status")
+  @@map("things")
+}
+
+model ThingContentType {
+  thingId     String      @map("thing_id") @db.Uuid
+  contentType ContentType @map("content_type")
+  thing       Thing       @relation(fields: [thingId], references: [id], onDelete: Cascade)
+
+  @@id([thingId, contentType])
+  @@map("thing_content_types")
+}
+
+model GatherQuery {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  thingId   String   @map("thing_id") @db.Uuid
+  query     String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  thing     Thing    @relation(fields: [thingId], references: [id], onDelete: Cascade)
+
+  @@index([thingId], map: "idx_gather_queries_thing_id")
+  @@map("gather_queries")
+}
