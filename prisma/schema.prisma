@@ -31,14 +31,31 @@ enum SpaceView {
   @@map("space_view")
 }
 
+enum SourceBilling {
+  monthly
+  usage
+
+  @@map("source_billing")
+}
+
+enum SubscriptionStatus {
+  active
+  canceled
+  past_due
+  trialing
+
+  @@map("subscription_status")
+}
+
 model User {
-  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  email       String   @unique
-  displayName String?  @map("display_name")
-  themeMode   String   @default("light") @map("theme_mode")
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  spaces      Space[]
+  id            String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email         String               @unique
+  displayName   String?              @map("display_name")
+  themeMode     String               @default("light") @map("theme_mode")
+  createdAt     DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  spaces        Space[]
+  subscriptions SourceSubscription[]
 
   @@map("users")
 }
@@ -89,6 +106,7 @@ model Thing {
   collection    Collection         @relation(fields: [collectionId], references: [id], onDelete: Cascade)
   contentTypes  ThingContentType[]
   gatherQueries GatherQuery[]
+  contentItems  ContentItem[]
 
   @@index([collectionId], map: "idx_things_collection_id")
   @@index([status], map: "idx_things_status")
@@ -113,4 +131,72 @@ model GatherQuery {
 
   @@index([thingId], map: "idx_gather_queries_thing_id")
   @@map("gather_queries")
+}
+
+model Source {
+  id            String               @id
+  name          String
+  provider      String
+  description   String               @default("")
+  priceCents    Int                  @map("price_cents")
+  currency      String               @default("USD") @db.Char(3)
+  billing       SourceBilling        @default(monthly)
+  accent        String
+  isActive      Boolean              @default(true) @map("is_active")
+  createdAt     DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  unlocks       SourceUnlock[]
+  subscriptions SourceSubscription[]
+  contentItems  ContentItem[]
+
+  @@map("sources")
+}
+
+model SourceUnlock {
+  sourceId    String      @map("source_id")
+  contentType ContentType @map("content_type")
+  source      Source      @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+
+  @@id([sourceId, contentType])
+  @@map("source_unlocks")
+}
+
+model SourceSubscription {
+  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId           String             @map("user_id") @db.Uuid
+  sourceId         String             @map("source_id")
+  status           SubscriptionStatus @default(active)
+  externalRef      String?            @map("external_ref")
+  startedAt        DateTime           @default(now()) @map("started_at") @db.Timestamptz(6)
+  canceledAt       DateTime?          @map("canceled_at") @db.Timestamptz(6)
+  currentPeriodEnd DateTime?          @map("current_period_end") @db.Timestamptz(6)
+  createdAt        DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user             User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  source           Source             @relation(fields: [sourceId], references: [id], onDelete: Restrict)
+
+  @@unique([userId, sourceId])
+  @@index([userId], map: "idx_source_subscriptions_user_id")
+  @@index([status], map: "idx_source_subscriptions_status")
+  @@map("source_subscriptions")
+}
+
+model ContentItem {
+  id         String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  thingId    String      @map("thing_id") @db.Uuid
+  sourceId   String      @map("source_id")
+  type       ContentType
+  title      String
+  thumbnail  String      @default("")
+  url        String?
+  meta       String?
+  sortOrder  Int         @default(0) @map("sort_order")
+  createdAt  DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  thing      Thing       @relation(fields: [thingId], references: [id], onDelete: Cascade)
+  source     Source      @relation(fields: [sourceId], references: [id], onDelete: Restrict)
+
+  @@index([thingId], map: "idx_content_items_thing_id")
+  @@index([sourceId], map: "idx_content_items_source_id")
+  @@index([thingId, type], map: "idx_content_items_type")
+  @@map("content_items")
 }

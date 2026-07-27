@@ -1,5 +1,18 @@
 import { ContentType, ThingStatus } from '@prisma/client';
 
+export interface ContentItemReadModel {
+  id: string;
+  thingId: string;
+  sourceId: string;
+  type: ContentType;
+  title: string;
+  thumbnail: string;
+  url: string | null;
+  meta: string | null;
+  sortOrder: number;
+  createdAt: Date;
+}
+
 export interface ThingReadModel {
   id: string;
   collectionId: string;
@@ -8,6 +21,7 @@ export interface ThingReadModel {
   status: ThingStatus;
   sortOrder: number;
   contentTypes: ContentType[];
+  content: ContentItemReadModel[];
   createdAt: Date;
   updatedAt: Date;
 }

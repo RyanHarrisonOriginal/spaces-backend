@@ -16,6 +16,7 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { UserId } from '../../../shared/presentation/decorators/user-id.decorator';
 import { CreateThingCommand } from '../application/commands/create-thing.command';
 import { DeleteThingCommand } from '../application/commands/delete-thing.command';
+import { GatherThingCommand } from '../application/commands/gather-thing.command';
 import { ReplaceGatherQueriesCommand } from '../application/commands/replace-gather-queries.command';
 import { UpdateThingCommand } from '../application/commands/update-thing.command';
 import { CreateThingDto } from '../application/dto/create-thing.dto';
@@ -96,5 +97,13 @@ export class ThingsController {
     return this.commandBus.execute(
       new ReplaceGatherQueriesCommand(userId, thingId, dto.queries),
     );
+  }
+
+  @Post('things/:thingId/gather')
+  async gather(
+    @UserId() userId: string,
+    @Param('thingId', ParseUUIDPipe) thingId: string,
+  ) {
+    return this.commandBus.execute(new GatherThingCommand(userId, thingId));
   }
 }

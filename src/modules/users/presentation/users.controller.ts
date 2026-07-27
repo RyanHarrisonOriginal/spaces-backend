@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 
+import { BootstrapUserCommand } from '../application/commands/bootstrap-user.command';
 import { CreateUserCommand } from '../application/commands/create-user.command';
 import { UpdateUserCommand } from '../application/commands/update-user.command';
 import { CreateUserDto } from '../application/dto/create-user.dto';
@@ -19,6 +20,14 @@ export class UsersController {
   async create(@Body() dto: CreateUserDto): Promise<User> {
     return this.commandBus.execute(
       new CreateUserCommand(dto.email, dto.displayName, dto.themeMode),
+    );
+  }
+
+  /** Find-or-create for app first launch (no auth yet). */
+  @Post('bootstrap')
+  async bootstrap(@Body() dto: CreateUserDto): Promise<User> {
+    return this.commandBus.execute(
+      new BootstrapUserCommand(dto.email, dto.displayName, dto.themeMode),
     );
   }
 

@@ -2,9 +2,11 @@ import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 
 import { CollectionsModule } from '../collections/collections.module';
+import { SourcesModule } from '../sources/sources.module';
 import { SpacesModule } from '../spaces/spaces.module';
 import { CreateThingHandler } from './application/commands/handlers/create-thing.handler';
 import { DeleteThingHandler } from './application/commands/handlers/delete-thing.handler';
+import { GatherThingHandler } from './application/commands/handlers/gather-thing.handler';
 import { ReplaceGatherQueriesHandler } from './application/commands/handlers/replace-gather-queries.handler';
 import { UpdateThingHandler } from './application/commands/handlers/update-thing.handler';
 import { GetThingHandler } from './application/queries/handlers/get-thing.handler';
@@ -21,11 +23,12 @@ const CommandHandlers = [
   UpdateThingHandler,
   DeleteThingHandler,
   ReplaceGatherQueriesHandler,
+  GatherThingHandler,
 ];
 const QueryHandlers = [GetThingHandler, ListGatherQueriesHandler];
 
 @Module({
-  imports: [CqrsModule, SpacesModule, CollectionsModule],
+  imports: [CqrsModule, SpacesModule, CollectionsModule, SourcesModule],
   controllers: [ThingsController],
   providers: [
     ...CommandHandlers,
@@ -40,6 +43,6 @@ const QueryHandlers = [GetThingHandler, ListGatherQueriesHandler];
       useClass: PrismaGatherQueryRepository,
     },
   ],
-  exports: [THING_REPOSITORY, GATHER_QUERY_REPOSITORY],
+  exports: [THING_REPOSITORY, GATHER_QUERY_REPOSITORY, ThingAccessService],
 })
 export class ThingsModule {}

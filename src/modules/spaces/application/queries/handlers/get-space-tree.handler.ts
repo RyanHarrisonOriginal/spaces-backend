@@ -34,7 +34,12 @@ export class GetSpaceTreeHandler
           include: {
             things: {
               orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-              include: { contentTypes: true },
+              include: {
+                contentTypes: true,
+                contentItems: {
+                  orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+                },
+              },
             },
           },
         },
@@ -73,6 +78,18 @@ export class GetSpaceTreeHandler
           status: thing.status,
           sortOrder: thing.sortOrder,
           contentTypes: thing.contentTypes.map((ct) => ct.contentType),
+          content: thing.contentItems.map((item) => ({
+            id: item.id,
+            thingId: item.thingId,
+            sourceId: item.sourceId,
+            type: item.type,
+            title: item.title,
+            thumbnail: item.thumbnail,
+            url: item.url,
+            meta: item.meta,
+            sortOrder: item.sortOrder,
+            createdAt: item.createdAt,
+          })),
           createdAt: thing.createdAt,
           updatedAt: thing.updatedAt,
         })),
