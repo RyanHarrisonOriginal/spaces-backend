@@ -1,5 +1,6 @@
 import { Inject } from '@nestjs/common';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
+import { Prisma } from '@prisma/client';
 
 import { NotFoundException } from '../../../../../shared/domain/exceptions';
 import { PrismaService } from '../../../../../shared/infrastructure/prisma/prisma.service';
@@ -9,6 +10,28 @@ import {
 } from '../../../domain/space.repository';
 import { GetSpaceTreeQuery } from '../get-space-tree.query';
 import { SpaceTreeReadModel } from '../space-tree.read-model';
+
+const spaceTreeInclude = {
+  collections: {
+    orderBy: [{ sortOrder: 'asc' as const }, { createdAt: 'asc' as const }],
+    include: {
+      things: {
+        orderBy: [{ sortOrder: 'asc' as const }, { createdAt: 'asc' as const }],
+        include: {
+          contentTypes: true,
+          contentItems: {
+            orderBy: [
+              { sortOrder: 'asc' as const },
+              { createdAt: 'asc' as const },
+            ],
+          },
+        },
+      },
+    },
+  },
+} satisfies Prisma.SpaceInclude;
+
+type SpaceTreeRow = Prisma.SpaceGetPayload<{ include: typeof spaceTreeInclude }>;
 
 @QueryHandler(GetSpaceTreeQuery)
 export class GetSpaceTreeHandler
@@ -26,24 +49,9 @@ export class GetSpaceTreeHandler
       throw new NotFoundException('Space', query.spaceId);
     }
 
-    const row = await this.prisma.space.findUnique({
+    const row: SpaceTreeRow | null = await this.prisma.space.findUnique({
       where: { id: query.spaceId },
-      include: {
-        collections: {
-          orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-          include: {
-            things: {
-              orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-              include: {
-                contentTypes: true,
-                contentItems: {
-                  orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-                },
-              },
-            },
-          },
-        },
-      },
+      include: spaceTreeInclude,
     });
 
     if (!row) {
