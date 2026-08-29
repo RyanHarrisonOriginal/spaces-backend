@@ -22,9 +22,9 @@ export class PrismaContentItemRepository extends ContentItemRepository {
     return row ? this.toDomain(row) : null;
   }
 
-  async findByThingId(thingId: string): Promise<ContentItem[]> {
+  async findByCollectionId(collectionId: string): Promise<ContentItem[]> {
     const rows = await this.prisma.contentItem.findMany({
-      where: { thingId },
+      where: { collectionId },
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
     });
     return rows.map((row) => this.toDomain(row));
@@ -35,7 +35,7 @@ export class PrismaContentItemRepository extends ContentItemRepository {
       where: { id: entity.id },
       create: {
         id: entity.id,
-        thingId: entity.thingId,
+        collectionId: entity.collectionId,
         sourceId: entity.sourceId,
         type: entity.type as PrismaContentType,
         title: entity.title,
@@ -58,16 +58,16 @@ export class PrismaContentItemRepository extends ContentItemRepository {
     return this.toDomain(row);
   }
 
-  async replaceForThing(
-    thingId: string,
+  async replaceForCollection(
+    collectionId: string,
     items: ContentItem[],
   ): Promise<ContentItem[]> {
     await this.prisma.$transaction([
-      this.prisma.contentItem.deleteMany({ where: { thingId } }),
+      this.prisma.contentItem.deleteMany({ where: { collectionId } }),
       this.prisma.contentItem.createMany({
         data: items.map((item) => ({
           id: item.id,
-          thingId: item.thingId,
+          collectionId: item.collectionId,
           sourceId: item.sourceId,
           type: item.type as PrismaContentType,
           title: item.title,
@@ -79,7 +79,7 @@ export class PrismaContentItemRepository extends ContentItemRepository {
         })),
       }),
     ]);
-    return this.findByThingId(thingId);
+    return this.findByCollectionId(collectionId);
   }
 
   async delete(id: string): Promise<void> {
@@ -89,7 +89,7 @@ export class PrismaContentItemRepository extends ContentItemRepository {
   private toDomain(row: PrismaContentItem): ContentItem {
     return ContentItem.reconstitute({
       id: row.id,
-      thingId: row.thingId,
+      collectionId: row.collectionId,
       sourceId: row.sourceId,
       type: row.type as ContentType,
       title: row.title,

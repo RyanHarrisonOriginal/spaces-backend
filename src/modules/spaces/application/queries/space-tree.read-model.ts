@@ -1,8 +1,8 @@
-import { ContentType, ThingStatus } from '@prisma/client';
+import { ContentType } from '@prisma/client';
 
 export interface ContentItemReadModel {
   id: string;
-  thingId: string;
+  collectionId: string;
   sourceId: string;
   type: ContentType;
   title: string;
@@ -13,19 +13,6 @@ export interface ContentItemReadModel {
   createdAt: Date;
 }
 
-export interface ThingReadModel {
-  id: string;
-  collectionId: string;
-  name: string;
-  description: string;
-  status: ThingStatus;
-  sortOrder: number;
-  contentTypes: ContentType[];
-  content: ContentItemReadModel[];
-  createdAt: Date;
-  updatedAt: Date;
-}
-
 export interface CollectionReadModel {
   id: string;
   spaceId: string;
@@ -34,7 +21,8 @@ export interface CollectionReadModel {
   sortOrder: number;
   createdAt: Date;
   updatedAt: Date;
-  things: ThingReadModel[];
+  queries: string[];
+  content: ContentItemReadModel[];
 }
 
 export interface SpaceTreeReadModel {

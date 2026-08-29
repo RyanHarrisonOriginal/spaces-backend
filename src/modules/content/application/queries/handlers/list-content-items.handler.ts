@@ -1,7 +1,7 @@
 import { Inject } from '@nestjs/common';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 
-import { ThingAccessService } from '../../../../things/application/services/thing-access.service';
+import { CollectionAccessService } from '../../../../collections/application/services/collection-access.service';
 import { ContentItem } from '../../../domain/content-item.entity';
 import {
   CONTENT_ITEM_REPOSITORY,
@@ -16,11 +16,11 @@ export class ListContentItemsHandler
   constructor(
     @Inject(CONTENT_ITEM_REPOSITORY)
     private readonly contentItems: ContentItemRepository,
-    private readonly access: ThingAccessService,
+    private readonly access: CollectionAccessService,
   ) {}
 
   async execute(query: ListContentItemsQuery): Promise<ContentItem[]> {
-    await this.access.requireOwnedThing(query.userId, query.thingId);
-    return this.contentItems.findByThingId(query.thingId);
+    await this.access.requireOwnedCollection(query.userId, query.collectionId);
+    return this.contentItems.findByCollectionId(query.collectionId);
   }
 }

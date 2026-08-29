@@ -15,17 +15,14 @@ const spaceTreeInclude = {
   collections: {
     orderBy: [{ sortOrder: 'asc' as const }, { createdAt: 'asc' as const }],
     include: {
-      things: {
-        orderBy: [{ sortOrder: 'asc' as const }, { createdAt: 'asc' as const }],
-        include: {
-          contentTypes: true,
-          contentItems: {
-            orderBy: [
-              { sortOrder: 'asc' as const },
-              { createdAt: 'asc' as const },
-            ],
-          },
-        },
+      gatherQueries: {
+        orderBy: { createdAt: 'asc' as const },
+      },
+      contentItems: {
+        orderBy: [
+          { sortOrder: 'asc' as const },
+          { createdAt: 'asc' as const },
+        ],
       },
     },
   },
@@ -78,28 +75,18 @@ export class GetSpaceTreeHandler
         sortOrder: collection.sortOrder,
         createdAt: collection.createdAt,
         updatedAt: collection.updatedAt,
-        things: collection.things.map((thing) => ({
-          id: thing.id,
-          collectionId: thing.collectionId,
-          name: thing.name,
-          description: thing.description,
-          status: thing.status,
-          sortOrder: thing.sortOrder,
-          contentTypes: thing.contentTypes.map((ct) => ct.contentType),
-          content: thing.contentItems.map((item) => ({
-            id: item.id,
-            thingId: item.thingId,
-            sourceId: item.sourceId,
-            type: item.type,
-            title: item.title,
-            thumbnail: item.thumbnail,
-            url: item.url,
-            meta: item.meta,
-            sortOrder: item.sortOrder,
-            createdAt: item.createdAt,
-          })),
-          createdAt: thing.createdAt,
-          updatedAt: thing.updatedAt,
+        queries: collection.gatherQueries.map((q) => q.query),
+        content: collection.contentItems.map((item) => ({
+          id: item.id,
+          collectionId: item.collectionId,
+          sourceId: item.sourceId,
+          type: item.type,
+          title: item.title,
+          thumbnail: item.thumbnail,
+          url: item.url,
+          meta: item.meta,
+          sortOrder: item.sortOrder,
+          createdAt: item.createdAt,
         })),
       })),
     };

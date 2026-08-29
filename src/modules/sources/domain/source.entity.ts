@@ -1,5 +1,4 @@
 export type ContentType = 'video' | 'article' | 'image';
-export type SourceBilling = 'monthly' | 'usage';
 
 export interface SourceProps {
   id: string;
@@ -8,7 +7,7 @@ export interface SourceProps {
   description: string;
   priceCents: number;
   currency: string;
-  billing: SourceBilling;
+  billing: string;
   accent: string;
   isActive: boolean;
   unlocks: ContentType[];
@@ -47,7 +46,7 @@ export class Source {
     return this.props.currency;
   }
 
-  get billing(): SourceBilling {
+  get billing(): string {
     return this.props.billing;
   }
 

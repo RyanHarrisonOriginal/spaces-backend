@@ -15,6 +15,7 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { UserId } from '../../../shared/presentation/decorators/user-id.decorator';
 import { CreateSpaceCommand } from '../application/commands/create-space.command';
 import { DeleteSpaceCommand } from '../application/commands/delete-space.command';
+import { EnqueueSpaceDiscoveryProfileCommand } from '../application/commands/enqueue-space-discovery-profile.command';
 import { UpdateSpaceCommand } from '../application/commands/update-space.command';
 import { CreateSpaceDto } from '../application/dto/create-space.dto';
 import { UpdateSpaceDto } from '../application/dto/update-space.dto';
@@ -50,6 +51,17 @@ export class SpacesController {
         dto.textColor,
         dto.view,
       ),
+    );
+  }
+
+  @Post(':spaceId/discovery-profile')
+  @HttpCode(HttpStatus.ACCEPTED)
+  async enqueueDiscoveryProfile(
+    @UserId() userId: string,
+    @Param('spaceId', ParseUUIDPipe) spaceId: string,
+  ): Promise<{ jobId: string }> {
+    return this.commandBus.execute(
+      new EnqueueSpaceDiscoveryProfileCommand(userId, spaceId),
     );
   }
 

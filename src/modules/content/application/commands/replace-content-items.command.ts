@@ -12,7 +12,7 @@ export interface ContentItemInput {
 export class ReplaceContentItemsCommand {
   constructor(
     public readonly userId: string,
-    public readonly thingId: string,
+    public readonly collectionId: string,
     public readonly items: ContentItemInput[],
   ) {}
 }

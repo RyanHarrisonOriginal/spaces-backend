@@ -2,7 +2,7 @@ export type ContentType = 'video' | 'article' | 'image';
 
 export interface ContentItemProps {
   id: string;
-  thingId: string;
+  collectionId: string;
   sourceId: string;
   type: ContentType;
   title: string;
@@ -18,7 +18,7 @@ export class ContentItem {
 
   static create(input: {
     id: string;
-    thingId: string;
+    collectionId: string;
     sourceId: string;
     type: ContentType;
     title: string;
@@ -34,7 +34,7 @@ export class ContentItem {
 
     return new ContentItem({
       id: input.id,
-      thingId: input.thingId,
+      collectionId: input.collectionId,
       sourceId: input.sourceId,
       type: input.type,
       title,
@@ -54,8 +54,8 @@ export class ContentItem {
     return this.props.id;
   }
 
-  get thingId(): string {
-    return this.props.thingId;
+  get collectionId(): string {
+    return this.props.collectionId;
   }
 
   get sourceId(): string {

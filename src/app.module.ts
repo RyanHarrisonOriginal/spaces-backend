@@ -5,7 +5,6 @@ import { CollectionsModule } from './modules/collections/collections.module';
 import { ContentModule } from './modules/content/content.module';
 import { SourcesModule } from './modules/sources/sources.module';
 import { SpacesModule } from './modules/spaces/spaces.module';
-import { ThingsModule } from './modules/things/things.module';
 import { UsersModule } from './modules/users/users.module';
 import { PrismaModule } from './shared/infrastructure/prisma/prisma.module';
 import { HealthController } from './shared/presentation/health.controller';
@@ -17,7 +16,6 @@ import { HealthController } from './shared/presentation/health.controller';
     UsersModule,
     SpacesModule,
     CollectionsModule,
-    ThingsModule,
     SourcesModule,
     ContentModule,
   ],

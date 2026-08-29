@@ -1,11 +1,14 @@
 import { Injectable } from '@nestjs/common';
-import { Source as PrismaSource, SourceUnlock } from '@prisma/client';
+import {
+  Source as PrismaSource,
+  SourceContentType,
+} from '@prisma/client';
 
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service';
 import { ContentType, Source } from '../domain/source.entity';
 import { SourceRepository } from '../domain/source.repository';
 
-type SourceRow = PrismaSource & { unlocks: SourceUnlock[] };
+type SourceRow = PrismaSource & { contentTypes: SourceContentType[] };
 
 @Injectable()
 export class PrismaSourceRepository extends SourceRepository {
@@ -16,7 +19,7 @@ export class PrismaSourceRepository extends SourceRepository {
   async findById(id: string): Promise<Source | null> {
     const row = await this.prisma.source.findUnique({
       where: { id },
-      include: { unlocks: true },
+      include: { contentTypes: true },
     });
     return row ? this.toDomain(row) : null;
   }
@@ -24,7 +27,7 @@ export class PrismaSourceRepository extends SourceRepository {
   async findAllActive(): Promise<Source[]> {
     const rows = await this.prisma.source.findMany({
       where: { isActive: true },
-      include: { unlocks: true },
+      include: { contentTypes: true },
       orderBy: { name: 'asc' },
     });
     return rows.map((row) => this.toDomain(row));
@@ -44,7 +47,7 @@ export class PrismaSourceRepository extends SourceRepository {
         isActive: entity.isActive,
         updatedAt: entity.updatedAt,
       },
-      include: { unlocks: true },
+      include: { contentTypes: true },
     });
     return this.toDomain(row);
   }
@@ -64,7 +67,7 @@ export class PrismaSourceRepository extends SourceRepository {
       billing: row.billing,
       accent: row.accent,
       isActive: row.isActive,
-      unlocks: row.unlocks.map(
+      unlocks: row.contentTypes.map(
         (u) => u.contentType as ContentType,
       ),
       createdAt: row.createdAt,

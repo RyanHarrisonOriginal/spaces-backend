@@ -8,11 +8,11 @@ async function main() {
       id: 'youtube',
       name: 'YouTube',
       provider: 'Google',
-      description: 'Find videos that match each Thing brief.',
+      description: 'Find videos that match each collection brief.',
       priceCents: 600,
-      billing: 'monthly' as const,
+      billing: 'monthly',
       accent: '#E03131',
-      unlocks: ['video' as const],
+      unlocks: ['video'] as const,
     },
     {
       id: 'web',
@@ -20,9 +20,9 @@ async function main() {
       provider: 'Brave / Bing',
       description: 'Pull articles, essays, and references from the open web.',
       priceCents: 400,
-      billing: 'monthly' as const,
+      billing: 'monthly',
       accent: '#0B7AD1',
-      unlocks: ['article' as const],
+      unlocks: ['article'] as const,
     },
     {
       id: 'images',
@@ -30,9 +30,9 @@ async function main() {
       provider: 'Unsplash + Commons',
       description: 'Stills and reference imagery matched to your brief.',
       priceCents: 300,
-      billing: 'monthly' as const,
+      billing: 'monthly',
       accent: '#FFB020',
-      unlocks: ['image' as const],
+      unlocks: ['image'] as const,
     },
     {
       id: 'research',
@@ -41,9 +41,9 @@ async function main() {
       description:
         'Takes more time and casts a wider net across every source you subscribe to.',
       priceCents: 1200,
-      billing: 'monthly' as const,
+      billing: 'monthly',
       accent: '#1FAE5B',
-      unlocks: ['video' as const, 'article' as const, 'image' as const],
+      unlocks: ['video', 'article', 'image'] as const,
     },
   ];
 
@@ -58,7 +58,7 @@ async function main() {
         priceCents: source.priceCents,
         billing: source.billing,
         accent: source.accent,
-        unlocks: {
+        contentTypes: {
           create: source.unlocks.map((contentType) => ({ contentType })),
         },
       },
@@ -74,7 +74,7 @@ async function main() {
     });
 
     for (const contentType of source.unlocks) {
-      await prisma.sourceUnlock.upsert({
+      await prisma.sourceContentType.upsert({
         where: {
           sourceId_contentType: { sourceId: source.id, contentType },
         },

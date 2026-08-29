@@ -7,7 +7,7 @@ import { ReplaceContentItemsDto } from '../application/dto/replace-content-items
 import { ListContentItemsQuery } from '../application/queries/list-content-items.query';
 import { ContentItem } from '../domain/content-item.entity';
 
-@Controller('things/:thingId/content')
+@Controller('collections/:collectionId/content')
 export class ContentController {
   constructor(
     private readonly commandBus: CommandBus,
@@ -17,19 +17,19 @@ export class ContentController {
   @Get()
   async list(
     @UserId() userId: string,
-    @Param('thingId', ParseUUIDPipe) thingId: string,
+    @Param('collectionId', ParseUUIDPipe) collectionId: string,
   ): Promise<ContentItem[]> {
-    return this.queryBus.execute(new ListContentItemsQuery(userId, thingId));
+    return this.queryBus.execute(new ListContentItemsQuery(userId, collectionId));
   }
 
   @Put()
   async replace(
     @UserId() userId: string,
-    @Param('thingId', ParseUUIDPipe) thingId: string,
+    @Param('collectionId', ParseUUIDPipe) collectionId: string,
     @Body() dto: ReplaceContentItemsDto,
   ): Promise<ContentItem[]> {
     return this.commandBus.execute(
-      new ReplaceContentItemsCommand(userId, thingId, dto.items),
+      new ReplaceContentItemsCommand(userId, collectionId, dto.items),
     );
   }
 }

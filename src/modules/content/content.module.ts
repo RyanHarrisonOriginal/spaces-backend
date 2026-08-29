@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 
-import { ThingsModule } from '../things/things.module';
+import { CollectionsModule } from '../collections/collections.module';
 import { ReplaceContentItemsHandler } from './application/commands/handlers/replace-content-items.handler';
 import { ListContentItemsHandler } from './application/queries/handlers/list-content-items.handler';
 import { CONTENT_ITEM_REPOSITORY } from './domain/content-item.repository';
@@ -9,7 +9,7 @@ import { PrismaContentItemRepository } from './infrastructure/prisma-content-ite
 import { ContentController } from './presentation/content.controller';
 
 @Module({
-  imports: [CqrsModule, ThingsModule],
+  imports: [CqrsModule, CollectionsModule],
   controllers: [ContentController],
   providers: [
     ReplaceContentItemsHandler,

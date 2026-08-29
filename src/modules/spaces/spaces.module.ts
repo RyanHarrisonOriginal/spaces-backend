@@ -4,6 +4,7 @@ import { CqrsModule } from '@nestjs/cqrs';
 import { UsersModule } from '../users/users.module';
 import { CreateSpaceHandler } from './application/commands/handlers/create-space.handler';
 import { DeleteSpaceHandler } from './application/commands/handlers/delete-space.handler';
+import { EnqueueSpaceDiscoveryProfileHandler } from './application/commands/handlers/enqueue-space-discovery-profile.handler';
 import { UpdateSpaceHandler } from './application/commands/handlers/update-space.handler';
 import { GetSpaceTreeHandler } from './application/queries/handlers/get-space-tree.handler';
 import { ListSpacesHandler } from './application/queries/handlers/list-spaces.handler';
@@ -15,6 +16,7 @@ const CommandHandlers = [
   CreateSpaceHandler,
   UpdateSpaceHandler,
   DeleteSpaceHandler,
+  EnqueueSpaceDiscoveryProfileHandler,
 ];
 const QueryHandlers = [ListSpacesHandler, GetSpaceTreeHandler];
 
