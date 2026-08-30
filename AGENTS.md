@@ -4,6 +4,8 @@ Follow these when adding or changing persistence, application services, and disc
 
 ## Persistence
 
+Repositories used by **both** the API and the worker live in `packages/persistence` (gather queries). Discovery profile persistence stays in `packages/discovery`. API-only CRUD (users, spaces, collections) stays under `src/modules`.
+
 Repositories expose a small public interface:
 
 ```ts
@@ -22,6 +24,8 @@ When a repository supports multiple use cases that require meaningfully differen
 Each save strategy should encapsulate the rules and persistence behavior for one use case while the repository remains responsible for coordinating persistence.
 
 Reference: `packages/discovery/src/infrastructure/persistence/prisma-collection-discovery-profile.repository.ts`
+
+Shared API + worker repositories: `packages/persistence/src/` (gather queries). `SaveStrategy` lives there.
 
 ## Application services
 
@@ -51,9 +55,8 @@ Reference:
 
 ## Discovery / LLM
 
-- Generation runs in **`apps/worker`**. The API only enqueues jobs.
+- Generation and gather run in **`apps/worker`**. The API only enqueues jobs.
 - Jobs use BullMQ's PostgreSQL backend (`packages/queue`) on a dedicated `bullmq` schema. Schema changes go through `runMigrations()`, never Prisma or hand-written SQL.
-- Application code depends on the `LlmProvider` port, never the OpenAI SDK.
 - Application code depends on the `LlmProvider` port, never the OpenAI SDK.
 - The OpenAI SDK lives only in `packages/discovery/src/infrastructure/llm/openai/`.
 - Prompts live in dedicated text files under `packages/discovery/src/application/prompts/`. Do not bury prompt bodies in TypeScript.

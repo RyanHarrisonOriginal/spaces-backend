@@ -5,16 +5,17 @@ Express API + Prisma (Neon/Postgres), with a BullMQ worker for asynchronous disc
 ## Layout
 
 ```text
-src/                     Express HTTP API (enqueue only for discovery)
-apps/worker/             Runs CollectionDiscoveryProfile generation
+src/                     Express HTTP API (enqueue only for gather/discovery)
+apps/worker/             Runs gather: discovery profile, then gather queries
 packages/types/          Shared job types
 packages/db/             Prisma client helpers (app data)
 packages/queue/          BullMQ queue, Postgres connection, schema migrations
 packages/discovery/      Profile generation (port/adapter, OpenAI, persistence)
+packages/persistence/    Repos used by both API and worker (gather queries)
 prisma/                  Prisma schema (Neon/Postgres application tables)
 ```
 
-The API does not call OpenAI. It enqueues `generate_collection_discovery_profile` on BullMQ. The worker loads the Collection and Space descriptions, generates the profile, and persists it.
+The API does not call OpenAI. `POST /collections/:id/gather` enqueues a `gather_collection` job. The worker generates a discovery profile and writes `searchQueries` as gather queries.
 
 Prisma uses `DATABASE_URL` (Neon pooler is fine). BullMQ uses `NEON_DIRECT_DATABASE_URL` (direct session connection) because workers rely on `LISTEN`/`NOTIFY`.
 
@@ -59,18 +60,25 @@ npm run start:worker  # worker via tsx
 
 The worker loads `.env` from the repo root. Collection discovery profile generation uses `OPENAI_API_KEY` and `OPENAI_DISCOVERY_MODEL`.
 
-## Enqueue a collection discovery profile job
+## Gather a collection
+
+```http
+POST /api/collections/:collectionId/gather
+x-user-id: <user uuid>
+```
+
+`202 Accepted` with `{ "jobId": "..." }`. The worker runs discovery profile generation, then persists `searchQueries` as gather queries.
+
+Profile-only generation (no gather queries) remains:
 
 ```http
 POST /api/collections/:collectionId/discovery-profile
 x-user-id: <user uuid>
 ```
 
-`202 Accepted` with `{ "jobId": "..." }`.
-
 ## Queue
 
-Jobs run on BullMQ (`spaces` queue) using the official PostgreSQL backend. Schema objects live in Neon schema `bullmq` and are created/upgraded only by `runMigrations()`. The API calls `enqueueGenerateCollectionDiscoveryProfile(collectionId)` in `packages/queue`. The worker consumes that queue. Failed jobs retry up to 3 times with exponential backoff; unknown job types and missing collections are not retried.
+Jobs run on BullMQ (`spaces` queue) using the official PostgreSQL backend. Schema objects live in Neon schema `bullmq` and are created/upgraded only by `runMigrations()`. The API enqueues `gather_collection` or `generate_collection_discovery_profile` from `packages/queue`. Failed jobs retry up to 3 times with exponential backoff; unknown job types and missing collections are not retried.
 
 ## Database
 

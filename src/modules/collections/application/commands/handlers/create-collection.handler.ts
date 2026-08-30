@@ -15,12 +15,12 @@ import { CreateCollectionCommand } from '../create-collection.command';
 
 export class CreateCollectionHandler {
   constructor(
-    private readonly collections: CollectionRepository,
-    private readonly spaces: SpaceRepository,
+    private readonly collectionRepo: CollectionRepository,
+    private readonly spaceRepo: SpaceRepository,
   ) {}
 
   async execute(command: CreateCollectionCommand): Promise<Collection> {
-    const space = await this.spaces.get(command.spaceId);
+    const space = await this.spaceRepo.get(command.spaceId);
     if (!space || space.userId !== command.userId) {
       throw new NotFoundException('Space', command.spaceId);
     }
@@ -33,7 +33,7 @@ export class CreateCollectionHandler {
         description: command.description,
         sortOrder: command.sortOrder,
       });
-      return this.collections.save(collection);
+      return this.collectionRepo.save(collection);
     } catch (error) {
       throw new ValidationException(
         error instanceof Error ? error.message : 'Invalid collection',

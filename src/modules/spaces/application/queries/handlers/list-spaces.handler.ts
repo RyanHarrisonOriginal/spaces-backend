@@ -7,10 +7,10 @@ import { ListSpacesQuery } from '../list-spaces.query';
 
 export class ListSpacesHandler {
   constructor(
-    private readonly spaces: SpaceRepository,
+    private readonly spaceRepo: SpaceRepository,
   ) {}
 
   async execute(query: ListSpacesQuery): Promise<Space[]> {
-    return this.spaces.get({ userId: query.userId });
+    return this.spaceRepo.get({ userId: query.userId });
   }
 }

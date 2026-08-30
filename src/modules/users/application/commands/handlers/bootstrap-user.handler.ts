@@ -8,11 +8,11 @@ import { BootstrapUserCommand } from '../bootstrap-user.command';
 
 export class BootstrapUserHandler {
   constructor(
-    private readonly users: UserRepository,
+    private readonly userRepo: UserRepository,
   ) {}
 
   async execute(command: BootstrapUserCommand): Promise<User> {
-    const existing = await this.users.get({ email: command.email });
+    const existing = await this.userRepo.get({ email: command.email });
     if (existing) return existing;
 
     const user = User.create({
@@ -22,6 +22,6 @@ export class BootstrapUserHandler {
       themeMode: command.themeMode,
     });
 
-    return this.users.save(user);
+    return this.userRepo.save(user);
   }
 }

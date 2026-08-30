@@ -98,15 +98,15 @@ describe('CollectionDiscoveryProfileService', () => {
   };
 
   it('generates and persists a profile from valid LLM output', async () => {
-    const profiles = new InMemoryCollectionDiscoveryProfileRepository();
-    const service = new CollectionDiscoveryProfileService(
+    const profileRepo = new InMemoryCollectionDiscoveryProfileRepository();
+    const profileService = new CollectionDiscoveryProfileService(
       fakeLlmReturning(validProfile),
-      profiles,
+      profileRepo,
     );
 
-    const saved = await service.generateAndPersist(input);
+    const saved = await profileService.generateAndPersist(input);
 
-    assert.equal(profiles.records.length, 1);
+    assert.equal(profileRepo.records.length, 1);
     assert.deepEqual(saved.profile, validProfile);
     assert.equal(saved.provider, 'test');
     assert.equal(saved.model, 'fake-model');
@@ -118,96 +118,96 @@ describe('CollectionDiscoveryProfileService', () => {
   });
 
   it('rejects invalid LLM output and does not persist', async () => {
-    const profiles = new InMemoryCollectionDiscoveryProfileRepository();
-    const service = new CollectionDiscoveryProfileService(
+    const profileRepo = new InMemoryCollectionDiscoveryProfileRepository();
+    const profileService = new CollectionDiscoveryProfileService(
       fakeLlmReturning({ topics: [] }),
-      profiles,
+      profileRepo,
     );
 
     await assert.rejects(
-      () => service.generateAndPersist(input),
+      () => profileService.generateAndPersist(input),
       (error: unknown) => error instanceof ZodError,
     );
-    assert.equal(profiles.records.length, 0);
+    assert.equal(profileRepo.records.length, 0);
   });
 
   it('does not persist when the LLM provider fails', async () => {
-    const profiles = new InMemoryCollectionDiscoveryProfileRepository();
-    const service = new CollectionDiscoveryProfileService(
+    const profileRepo = new InMemoryCollectionDiscoveryProfileRepository();
+    const profileService = new CollectionDiscoveryProfileService(
       fakeLlmFailing(new LlmGenerationError('provider down')),
-      profiles,
+      profileRepo,
     );
 
     await assert.rejects(
-      () => service.generateAndPersist(input),
+      () => profileService.generateAndPersist(input),
       (error: unknown) =>
         error instanceof LlmGenerationError &&
         error.message === 'provider down',
     );
-    assert.equal(profiles.records.length, 0);
+    assert.equal(profileRepo.records.length, 0);
   });
 
   it('assigns version 1 to the first profile', async () => {
-    const profiles = new InMemoryCollectionDiscoveryProfileRepository();
-    const service = new CollectionDiscoveryProfileService(
+    const profileRepo = new InMemoryCollectionDiscoveryProfileRepository();
+    const profileService = new CollectionDiscoveryProfileService(
       fakeLlmReturning(validProfile),
-      profiles,
+      profileRepo,
     );
 
-    const saved = await service.generateAndPersist(input);
+    const saved = await profileService.generateAndPersist(input);
     assert.equal(saved.version, 1);
     assert.equal(saved.status, 'active');
     assert.equal(saved.supersededAt, null);
   });
 
   it('creates version 2 on regeneration instead of overwriting version 1', async () => {
-    const profiles = new InMemoryCollectionDiscoveryProfileRepository();
-    const service = new CollectionDiscoveryProfileService(
+    const profileRepo = new InMemoryCollectionDiscoveryProfileRepository();
+    const profileService = new CollectionDiscoveryProfileService(
       fakeLlmReturning(validProfile),
-      profiles,
+      profileRepo,
     );
 
-    const first = await service.generateAndPersist(input);
-    const second = await service.generateAndPersist(input);
+    const first = await profileService.generateAndPersist(input);
+    const second = await profileService.generateAndPersist(input);
 
     assert.equal(first.version, 1);
     assert.equal(second.version, 2);
-    assert.equal(profiles.records.length, 2);
+    assert.equal(profileRepo.records.length, 2);
     assert.notEqual(first.id, second.id);
     assert.deepEqual(
-      profiles.records.find((row) => row.version === 1)?.profile,
+      profileRepo.records.find((row) => row.version === 1)?.profile,
       validProfile,
     );
   });
 
   it('supersedes the prior active profile', async () => {
-    const profiles = new InMemoryCollectionDiscoveryProfileRepository();
-    const service = new CollectionDiscoveryProfileService(
+    const profileRepo = new InMemoryCollectionDiscoveryProfileRepository();
+    const profileService = new CollectionDiscoveryProfileService(
       fakeLlmReturning(validProfile),
-      profiles,
+      profileRepo,
     );
 
-    await service.generateAndPersist(input);
-    const second = await service.generateAndPersist(input);
+    await profileService.generateAndPersist(input);
+    const second = await profileService.generateAndPersist(input);
 
-    const first = profiles.records.find((row) => row.version === 1);
+    const first = profileRepo.records.find((row) => row.version === 1);
     assert.ok(first);
     assert.equal(first.status, 'superseded');
     assert.ok(first.supersededAt);
     assert.equal(second.status, 'active');
     assert.equal(
-      profiles.records.filter((row) => row.status === 'active').length,
+      profileRepo.records.filter((row) => row.status === 'active').length,
       1,
     );
   });
 
   it('runs against a mocked LlmProvider with no OpenAI client', async () => {
-    const service = new CollectionDiscoveryProfileService(
+    const profileService = new CollectionDiscoveryProfileService(
       fakeLlmReturning(validProfile),
       new InMemoryCollectionDiscoveryProfileRepository(),
     );
 
-    const saved = await service.generateAndPersist(input);
+    const saved = await profileService.generateAndPersist(input);
     assert.equal(saved.provider, 'test');
   });
 });

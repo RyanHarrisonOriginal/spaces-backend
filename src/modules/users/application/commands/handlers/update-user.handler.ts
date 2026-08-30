@@ -8,11 +8,11 @@ import { UpdateUserCommand } from '../update-user.command';
 
 export class UpdateUserHandler {
   constructor(
-    private readonly users: UserRepository,
+    private readonly userRepo: UserRepository,
   ) {}
 
   async execute(command: UpdateUserCommand): Promise<User> {
-    const user = await this.users.get(command.userId);
+    const user = await this.userRepo.get(command.userId);
     if (!user) {
       throw new NotFoundException('User', command.userId);
     }
@@ -22,6 +22,6 @@ export class UpdateUserHandler {
       themeMode: command.themeMode,
     });
 
-    return this.users.save(user);
+    return this.userRepo.save(user);
   }
 }

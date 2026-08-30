@@ -14,17 +14,17 @@ import { UpdateCollectionCommand } from '../update-collection.command';
 
 export class UpdateCollectionHandler {
   constructor(
-    private readonly collections: CollectionRepository,
-    private readonly spaces: SpaceRepository,
+    private readonly collectionRepo: CollectionRepository,
+    private readonly spaceRepo: SpaceRepository,
   ) {}
 
   async execute(command: UpdateCollectionCommand): Promise<Collection> {
-    const collection = await this.collections.get(command.collectionId);
+    const collection = await this.collectionRepo.get(command.collectionId);
     if (!collection) {
       throw new NotFoundException('Collection', command.collectionId);
     }
 
-    const space = await this.spaces.get(collection.spaceId);
+    const space = await this.spaceRepo.get(collection.spaceId);
     if (!space || space.userId !== command.userId) {
       throw new NotFoundException('Collection', command.collectionId);
     }
@@ -37,6 +37,6 @@ export class UpdateCollectionHandler {
       );
     }
 
-    return this.collections.save(collection);
+    return this.collectionRepo.save(collection);
   }
 }

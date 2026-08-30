@@ -6,7 +6,7 @@ import { PrismaUserMapper } from './prisma-user.mapper';
 import { UpsertUserSaveStrategy } from './user-save.strategies';
 
 export class PrismaUserRepository extends UserRepository {
-  private readonly mapper = new PrismaUserMapper();
+  private readonly userMapper = new PrismaUserMapper();
   private readonly upsertStrategy = new UpsertUserSaveStrategy();
 
   constructor(private readonly prisma: PrismaClient) {
@@ -27,20 +27,20 @@ export class PrismaUserRepository extends UserRepository {
   async save(entity: User): Promise<User> {
     return this.upsertStrategy.execute({
       prisma: this.prisma,
-      mapper: this.mapper,
+      mapper: this.userMapper,
       entity,
     });
   }
 
   private async getById(id: string): Promise<User | null> {
     const row = await this.prisma.user.findUnique({ where: { id } });
-    return row ? this.mapper.toDomain(row) : null;
+    return row ? this.userMapper.toDomain(row) : null;
   }
 
   private async getByEmail(email: string): Promise<User | null> {
     const row = await this.prisma.user.findUnique({
       where: { email: email.trim().toLowerCase() },
     });
-    return row ? this.mapper.toDomain(row) : null;
+    return row ? this.userMapper.toDomain(row) : null;
   }
 }

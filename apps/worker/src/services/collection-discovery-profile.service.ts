@@ -20,12 +20,12 @@ export async function runGenerateCollectionDiscoveryProfile(
     throw new CollectionNotFoundError(collectionId);
   }
 
-  const service = new CollectionDiscoveryProfileService(
+  const profileService = new CollectionDiscoveryProfileService(
     OpenAiAdapter.fromEnv(),
     new PrismaCollectionDiscoveryProfileRepository(db),
   );
 
-  return service.generateAndPersist({
+  return profileService.generateAndPersist({
     collectionId: collection.id,
     collectionDescription: collection.description,
     spaceDescription: collection.space.description,

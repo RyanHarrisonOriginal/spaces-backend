@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
-import { SaveStrategy } from '../../../shared/domain/repository';
-import { GatherQuery } from '../domain/gather-query.entity';
+
+import { SaveStrategy } from '../save-strategy';
+import { GatherQuery } from './gather-query.entity';
 import { PrismaGatherQueryMapper } from './prisma-gather-query.mapper';
 
 export type GatherQuerySaveContext = {

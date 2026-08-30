@@ -1,6 +1,6 @@
 import { GatherQuery as PrismaGatherQuery } from '@prisma/client';
 
-import { GatherQuery } from '../domain/gather-query.entity';
+import { GatherQuery } from './gather-query.entity';
 
 export class PrismaGatherQueryMapper {
   toDomain(row: PrismaGatherQuery): GatherQuery {

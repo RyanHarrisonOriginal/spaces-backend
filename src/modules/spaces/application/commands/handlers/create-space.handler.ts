@@ -15,12 +15,12 @@ import { CreateSpaceCommand } from '../create-space.command';
 
 export class CreateSpaceHandler {
   constructor(
-    private readonly spaces: SpaceRepository,
-    private readonly users: UserRepository,
+    private readonly spaceRepo: SpaceRepository,
+    private readonly userRepo: UserRepository,
   ) {}
 
   async execute(command: CreateSpaceCommand): Promise<Space> {
-    const user = await this.users.get(command.userId);
+    const user = await this.userRepo.get(command.userId);
     if (!user) {
       throw new NotFoundException('User', command.userId);
     }
@@ -37,7 +37,7 @@ export class CreateSpaceHandler {
         textColor: command.textColor,
         view: command.view,
       });
-      return this.spaces.save(space);
+      return this.spaceRepo.save(space);
     } catch (error) {
       throw new ValidationException(
         error instanceof Error ? error.message : 'Invalid space',

@@ -6,6 +6,7 @@ export {
 export {
   JOB_QUEUE_NAME,
   closeJobQueue,
+  enqueueGatherCollection,
   enqueueGenerateCollectionDiscoveryProfile,
   getJobQueue,
 } from './enqueue';

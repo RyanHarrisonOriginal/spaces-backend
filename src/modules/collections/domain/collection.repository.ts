@@ -1,12 +1,12 @@
 import { Collection } from './collection.entity';
 
-export const CollectionSave = {
+export const CollectionSaveStrategy = {
   Upsert: 'upsert',
   Delete: 'delete',
 } as const;
 
 export type CollectionSaveStrategyName =
-  (typeof CollectionSave)[keyof typeof CollectionSave];
+  (typeof CollectionSaveStrategy)[keyof typeof CollectionSaveStrategy];
 
 export abstract class CollectionRepository {
   abstract get(id: string): Promise<Collection | null>;

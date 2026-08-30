@@ -3,12 +3,12 @@ import { CollectionAccessService } from '../../services/collection-access.servic
 import { EnqueueCollectionDiscoveryProfileCommand } from '../enqueue-collection-discovery-profile.command';
 
 export class EnqueueCollectionDiscoveryProfileHandler {
-  constructor(private readonly access: CollectionAccessService) {}
+  constructor(private readonly collectionAccessService: CollectionAccessService) {}
 
   async execute(
     command: EnqueueCollectionDiscoveryProfileCommand,
   ): Promise<{ jobId: string }> {
-    await this.access.requireOwnedCollection(
+    await this.collectionAccessService.requireOwnedCollection(
       command.userId,
       command.collectionId,
     );

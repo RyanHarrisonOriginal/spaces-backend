@@ -20,8 +20,8 @@ export type GenerateCollectionDiscoveryProfileInput = {
 export class CollectionDiscoveryProfileService {
   constructor(
     private readonly llmProvider: LlmProvider,
-    private readonly profiles: CollectionDiscoveryProfileRepository,
-    private readonly mapper = new CollectionDiscoveryProfileMapper(),
+    private readonly profileRepo: CollectionDiscoveryProfileRepository,
+    private readonly profileMapper = new CollectionDiscoveryProfileMapper(),
   ) {}
 
   async generateAndPersist(
@@ -34,8 +34,8 @@ export class CollectionDiscoveryProfileService {
     });
 
     const profile = collectionDiscoveryProfileSchema.parse(generated.data);
-    const current = await this.profiles.get(input.collectionId);
-    const next = this.mapper.toNewActiveVersion({
+    const current = await this.profileRepo.get(input.collectionId);
+    const next = this.profileMapper.toNewActiveVersion({
       current,
       collectionId: input.collectionId,
       profile,
@@ -44,6 +44,6 @@ export class CollectionDiscoveryProfileService {
       promptVersion: COLLECTION_DISCOVERY_PROFILE_PROMPT_VERSION,
     });
 
-    return this.profiles.save(next);
+    return this.profileRepo.save(next);
   }
 }

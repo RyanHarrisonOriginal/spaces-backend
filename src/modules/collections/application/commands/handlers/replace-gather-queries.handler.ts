@@ -1,22 +1,22 @@
 import { randomUUID } from 'crypto';
 
+import {
+  GatherQuery,
+  GatherQueryRepository,
+  GatherQuerySaveStrategy,
+} from '../../../../../../packages/persistence/src';
 import { ValidationException } from '../../../../../shared/domain/exceptions';
 import { CollectionAccessService } from '../../services/collection-access.service';
-import { GatherQuery } from '../../../domain/gather-query.entity';
-import {
-  GatherQueryRepository,
-  GatherQuerySave,
-} from '../../../domain/gather-query.repository';
 import { ReplaceGatherQueriesCommand } from '../replace-gather-queries.command';
 
 export class ReplaceGatherQueriesHandler {
   constructor(
-    private readonly gatherQueries: GatherQueryRepository,
-    private readonly access: CollectionAccessService,
+    private readonly gatherQueryRepo: GatherQueryRepository,
+    private readonly collectionAccessService: CollectionAccessService,
   ) {}
 
   async execute(command: ReplaceGatherQueriesCommand): Promise<GatherQuery[]> {
-    await this.access.requireOwnedCollection(
+    await this.collectionAccessService.requireOwnedCollection(
       command.userId,
       command.collectionId,
     );
@@ -29,9 +29,9 @@ export class ReplaceGatherQueriesHandler {
           query,
         }),
       );
-      return this.gatherQueries.save(
+      return this.gatherQueryRepo.save(
         { collectionId: command.collectionId, items: entities },
-        GatherQuerySave.Replace,
+        GatherQuerySaveStrategy.Replace,
       );
     } catch (error) {
       throw new ValidationException(

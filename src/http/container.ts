@@ -10,12 +10,7 @@ import { ReplaceGatherQueriesHandler } from '../modules/collections/application/
 import { UpdateCollectionHandler } from '../modules/collections/application/commands/handlers/update-collection.handler';
 import { ListGatherQueriesHandler } from '../modules/collections/application/queries/handlers/list-gather-queries.handler';
 import { PrismaCollectionRepository } from '../modules/collections/infrastructure/prisma-collection.repository';
-import { PrismaGatherQueryRepository } from '../modules/collections/infrastructure/prisma-gather-query.repository';
-import { ReplaceContentItemsHandler } from '../modules/content/application/commands/handlers/replace-content-items.handler';
-import { ListContentItemsHandler } from '../modules/content/application/queries/handlers/list-content-items.handler';
-import { PrismaContentItemRepository } from '../modules/content/infrastructure/prisma-content-item.repository';
-import { ListSourcesHandler } from '../modules/sources/application/queries/handlers/list-sources.handler';
-import { PrismaSourceRepository } from '../modules/sources/infrastructure/prisma-source.repository';
+import { PrismaGatherQueryRepository } from '../../packages/persistence/src';
 import { CreateSpaceHandler } from '../modules/spaces/application/commands/handlers/create-space.handler';
 import { DeleteSpaceHandler } from '../modules/spaces/application/commands/handlers/delete-space.handler';
 import { UpdateSpaceHandler } from '../modules/spaces/application/commands/handlers/update-space.handler';
@@ -31,43 +26,40 @@ import { PrismaUserRepository } from '../modules/users/infrastructure/prisma-use
 export type AppContainer = ReturnType<typeof createContainer>;
 
 export function createContainer(prisma: PrismaClient = getPrisma()) {
-  const users = new PrismaUserRepository(prisma);
-  const spaces = new PrismaSpaceRepository(prisma);
-  const collections = new PrismaCollectionRepository(prisma);
-  const gatherQueries = new PrismaGatherQueryRepository(prisma);
-  const contentItems = new PrismaContentItemRepository(prisma);
-  const sources = new PrismaSourceRepository(prisma);
-  const access = new CollectionAccessService(collections, spaces);
+  const userRepo = new PrismaUserRepository(prisma);
+  const spaceRepo = new PrismaSpaceRepository(prisma);
+  const collectionRepo = new PrismaCollectionRepository(prisma);
+  const gatherQueryRepo = new PrismaGatherQueryRepository(prisma);
+  const collectionAccessService = new CollectionAccessService(
+    collectionRepo,
+    spaceRepo,
+  );
 
   return {
     prisma,
-    createUser: new CreateUserHandler(users),
-    bootstrapUser: new BootstrapUserHandler(users),
-    getUser: new GetUserHandler(users),
-    updateUser: new UpdateUserHandler(users),
-    listSpaces: new ListSpacesHandler(spaces),
-    createSpace: new CreateSpaceHandler(spaces, users),
-    getSpaceTree: new GetSpaceTreeHandler(spaces, prisma),
-    updateSpace: new UpdateSpaceHandler(spaces),
-    deleteSpace: new DeleteSpaceHandler(spaces),
-    createCollection: new CreateCollectionHandler(collections, spaces),
-    updateCollection: new UpdateCollectionHandler(collections, spaces),
-    deleteCollection: new DeleteCollectionHandler(collections, spaces),
+    createUser: new CreateUserHandler(userRepo),
+    bootstrapUser: new BootstrapUserHandler(userRepo),
+    getUser: new GetUserHandler(userRepo),
+    updateUser: new UpdateUserHandler(userRepo),
+    listSpaces: new ListSpacesHandler(spaceRepo),
+    createSpace: new CreateSpaceHandler(spaceRepo, userRepo),
+    getSpaceTree: new GetSpaceTreeHandler(spaceRepo, prisma),
+    updateSpace: new UpdateSpaceHandler(spaceRepo),
+    deleteSpace: new DeleteSpaceHandler(spaceRepo),
+    createCollection: new CreateCollectionHandler(collectionRepo, spaceRepo),
+    updateCollection: new UpdateCollectionHandler(collectionRepo, spaceRepo),
+    deleteCollection: new DeleteCollectionHandler(collectionRepo, spaceRepo),
     enqueueDiscoveryProfile: new EnqueueCollectionDiscoveryProfileHandler(
-      access,
+      collectionAccessService,
     ),
-    listGatherQueries: new ListGatherQueriesHandler(gatherQueries, access),
+    listGatherQueries: new ListGatherQueriesHandler(
+      gatherQueryRepo,
+      collectionAccessService,
+    ),
     replaceGatherQueries: new ReplaceGatherQueriesHandler(
-      gatherQueries,
-      access,
+      gatherQueryRepo,
+      collectionAccessService,
     ),
-    gatherCollection: new GatherCollectionHandler(
-      access,
-      gatherQueries,
-      prisma,
-    ),
-    listContentItems: new ListContentItemsHandler(contentItems, access),
-    replaceContentItems: new ReplaceContentItemsHandler(contentItems, access),
-    listSources: new ListSourcesHandler(sources),
+    gatherCollection: new GatherCollectionHandler(collectionAccessService),
   };
 }

@@ -9,11 +9,11 @@ import { CreateUserCommand } from '../create-user.command';
 
 export class CreateUserHandler {
   constructor(
-    private readonly users: UserRepository,
+    private readonly userRepo: UserRepository,
   ) {}
 
   async execute(command: CreateUserCommand): Promise<User> {
-    const existing = await this.users.get({ email: command.email });
+    const existing = await this.userRepo.get({ email: command.email });
     if (existing) {
       throw new ConflictException('A user with this email already exists');
     }
@@ -25,6 +25,6 @@ export class CreateUserHandler {
       themeMode: command.themeMode,
     });
 
-    return this.users.save(user);
+    return this.userRepo.save(user);
   }
 }

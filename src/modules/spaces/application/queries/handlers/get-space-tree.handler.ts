@@ -14,12 +14,6 @@ const spaceTreeInclude = {
       gatherQueries: {
         orderBy: { createdAt: 'asc' as const },
       },
-      contentItems: {
-        orderBy: [
-          { sortOrder: 'asc' as const },
-          { createdAt: 'asc' as const },
-        ],
-      },
     },
   },
 } satisfies Prisma.SpaceInclude;
@@ -28,12 +22,12 @@ type SpaceTreeRow = Prisma.SpaceGetPayload<{ include: typeof spaceTreeInclude }>
 
 export class GetSpaceTreeHandler {
   constructor(
-    private readonly spaces: SpaceRepository,
+    private readonly spaceRepo: SpaceRepository,
     private readonly prisma: PrismaClient,
   ) {}
 
   async execute(query: GetSpaceTreeQuery): Promise<SpaceTreeReadModel> {
-    const space = await this.spaces.get(query.spaceId);
+    const space = await this.spaceRepo.get(query.spaceId);
     if (!space || space.userId !== query.userId) {
       throw new NotFoundException('Space', query.spaceId);
     }
@@ -68,18 +62,6 @@ export class GetSpaceTreeHandler {
         createdAt: collection.createdAt,
         updatedAt: collection.updatedAt,
         queries: collection.gatherQueries.map((q) => q.query),
-        content: collection.contentItems.map((item) => ({
-          id: item.id,
-          collectionId: item.collectionId,
-          sourceId: item.sourceId,
-          type: item.type,
-          title: item.title,
-          thumbnail: item.thumbnail,
-          url: item.url,
-          meta: item.meta,
-          sortOrder: item.sortOrder,
-          createdAt: item.createdAt,
-        })),
       })),
     };
   }

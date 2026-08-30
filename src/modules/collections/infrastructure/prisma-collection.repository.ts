@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import { Collection } from '../domain/collection.entity';
 import {
   CollectionRepository,
-  CollectionSave,
+  CollectionSaveStrategy,
   CollectionSaveStrategyName,
 } from '../domain/collection.repository';
 import {
@@ -13,10 +13,10 @@ import {
 import { PrismaCollectionMapper } from './prisma-collection.mapper';
 
 export class PrismaCollectionRepository extends CollectionRepository {
-  private readonly mapper = new PrismaCollectionMapper();
-  private readonly strategies = {
-    [CollectionSave.Upsert]: new UpsertCollectionSaveStrategy(),
-    [CollectionSave.Delete]: new DeleteCollectionSaveStrategy(),
+  private readonly collectionMapper = new PrismaCollectionMapper();
+  private readonly saveStrategies = {
+    [CollectionSaveStrategy.Upsert]: new UpsertCollectionSaveStrategy(),
+    [CollectionSaveStrategy.Delete]: new DeleteCollectionSaveStrategy(),
   };
 
   constructor(private readonly prisma: PrismaClient) {
@@ -36,18 +36,18 @@ export class PrismaCollectionRepository extends CollectionRepository {
 
   async save(
     entity: Collection,
-    strategy: CollectionSaveStrategyName = CollectionSave.Upsert,
+    strategy: CollectionSaveStrategyName = CollectionSaveStrategy.Upsert,
   ): Promise<Collection> {
-    return this.strategies[strategy].execute({
+    return this.saveStrategies[strategy].execute({
       prisma: this.prisma,
-      mapper: this.mapper,
+      mapper: this.collectionMapper,
       entity,
     });
   }
 
   private async getById(id: string): Promise<Collection | null> {
     const row = await this.prisma.collection.findUnique({ where: { id } });
-    return row ? this.mapper.toDomain(row) : null;
+    return row ? this.collectionMapper.toDomain(row) : null;
   }
 
   private async getBySpaceId(spaceId: string): Promise<Collection[]> {
@@ -55,6 +55,6 @@ export class PrismaCollectionRepository extends CollectionRepository {
       where: { spaceId },
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
     });
-    return rows.map((row) => this.mapper.toDomain(row));
+    return rows.map((row) => this.collectionMapper.toDomain(row));
   }
 }

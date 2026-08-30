@@ -10,7 +10,7 @@ import { PrismaCollectionDiscoveryProfileMapper } from './prisma-collection-disc
 type TransactionClient = Prisma.TransactionClient;
 
 export class PrismaCollectionDiscoveryProfileRepository extends CollectionDiscoveryProfileRepository {
-  private readonly mapper = new PrismaCollectionDiscoveryProfileMapper();
+  private readonly profileMapper = new PrismaCollectionDiscoveryProfileMapper();
 
   constructor(private readonly prisma: PrismaClient) {
     super();
@@ -23,7 +23,7 @@ export class PrismaCollectionDiscoveryProfileRepository extends CollectionDiscov
       where: { collectionId },
       orderBy: { version: 'desc' },
     });
-    return row ? this.mapper.toDomain(row) : null;
+    return row ? this.profileMapper.toDomain(row) : null;
   }
 
   async save(
@@ -64,8 +64,8 @@ export class PrismaCollectionDiscoveryProfileRepository extends CollectionDiscov
     record: PersistedCollectionDiscoveryProfile,
   ): Promise<PersistedCollectionDiscoveryProfile> {
     const created = await tx.collectionDiscoveryProfile.create({
-      data: this.mapper.toCreateData(record),
+      data: this.profileMapper.toCreateData(record),
     });
-    return this.mapper.toDomain(created);
+    return this.profileMapper.toDomain(created);
   }
 }

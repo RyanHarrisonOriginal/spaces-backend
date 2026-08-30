@@ -8,11 +8,11 @@ import { GetUserQuery } from '../get-user.query';
 
 export class GetUserHandler {
   constructor(
-    private readonly users: UserRepository,
+    private readonly userRepo: UserRepository,
   ) {}
 
   async execute(query: GetUserQuery): Promise<User> {
-    const user = await this.users.get(query.userId);
+    const user = await this.userRepo.get(query.userId);
     if (!user) {
       throw new NotFoundException('User', query.userId);
     }

@@ -38,15 +38,30 @@ export async function closeJobQueue(): Promise<void> {
   queue = undefined;
 }
 
-export async function enqueueGenerateCollectionDiscoveryProfile(
+async function addCollectionJob(
+  type:
+    | typeof JOB_TYPES.GENERATE_COLLECTION_DISCOVERY_PROFILE
+    | typeof JOB_TYPES.GATHER_COLLECTION,
   collectionId: string,
 ): Promise<{ id: string }> {
-  const job = await getJobQueue().add(
-    JOB_TYPES.GENERATE_COLLECTION_DISCOVERY_PROFILE,
-    { collectionId },
-  );
+  const job = await getJobQueue().add(type, { collectionId });
   if (!job.id) {
     throw new Error('BullMQ did not return a job id');
   }
   return { id: String(job.id) };
+}
+
+export async function enqueueGenerateCollectionDiscoveryProfile(
+  collectionId: string,
+): Promise<{ id: string }> {
+  return addCollectionJob(
+    JOB_TYPES.GENERATE_COLLECTION_DISCOVERY_PROFILE,
+    collectionId,
+  );
+}
+
+export async function enqueueGatherCollection(
+  collectionId: string,
+): Promise<{ id: string }> {
+  return addCollectionJob(JOB_TYPES.GATHER_COLLECTION, collectionId);
 }

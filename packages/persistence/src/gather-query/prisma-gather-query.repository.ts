@@ -1,10 +1,10 @@
-
 import { PrismaClient } from '@prisma/client';
-import { GatherQuery } from '../domain/gather-query.entity';
+
+import { GatherQuery } from './gather-query.entity';
 import {
   GatherQueryRepository,
-  GatherQuerySave,
-} from '../domain/gather-query.repository';
+  GatherQuerySaveStrategy,
+} from './gather-query.repository';
 import {
   ReplaceGatherQueriesSaveStrategy,
   UpsertGatherQuerySaveStrategy,
@@ -12,7 +12,7 @@ import {
 import { PrismaGatherQueryMapper } from './prisma-gather-query.mapper';
 
 export class PrismaGatherQueryRepository extends GatherQueryRepository {
-  private readonly mapper = new PrismaGatherQueryMapper();
+  private readonly gatherQueryMapper = new PrismaGatherQueryMapper();
   private readonly upsertStrategy = new UpsertGatherQuerySaveStrategy();
   private readonly replaceStrategy = new ReplaceGatherQueriesSaveStrategy();
 
@@ -33,44 +33,40 @@ export class PrismaGatherQueryRepository extends GatherQueryRepository {
 
   async save(
     entity: GatherQuery,
-    strategy?: typeof GatherQuerySave.Upsert,
+    strategy?: typeof GatherQuerySaveStrategy.Upsert,
   ): Promise<GatherQuery>;
   async save(
     input: { collectionId: string; items: GatherQuery[] },
-    strategy: typeof GatherQuerySave.Replace,
+    strategy: typeof GatherQuerySaveStrategy.Replace,
   ): Promise<GatherQuery[]>;
   async save(
-    entityOrInput:
-      | GatherQuery
-      | { collectionId: string; items: GatherQuery[] },
+    entityOrInput: GatherQuery | { collectionId: string; items: GatherQuery[] },
   ): Promise<GatherQuery | GatherQuery[]> {
     if ('items' in entityOrInput) {
       return this.replaceStrategy.execute({
         prisma: this.prisma,
-        mapper: this.mapper,
+        mapper: this.gatherQueryMapper,
         collectionId: entityOrInput.collectionId,
         entities: entityOrInput.items,
       });
     }
     return this.upsertStrategy.execute({
       prisma: this.prisma,
-      mapper: this.mapper,
+      mapper: this.gatherQueryMapper,
       entity: entityOrInput,
     });
   }
 
   private async getById(id: string): Promise<GatherQuery | null> {
     const row = await this.prisma.gatherQuery.findUnique({ where: { id } });
-    return row ? this.mapper.toDomain(row) : null;
+    return row ? this.gatherQueryMapper.toDomain(row) : null;
   }
 
-  private async getByCollectionId(
-    collectionId: string,
-  ): Promise<GatherQuery[]> {
+  private async getByCollectionId(collectionId: string): Promise<GatherQuery[]> {
     const rows = await this.prisma.gatherQuery.findMany({
       where: { collectionId },
       orderBy: { createdAt: 'asc' },
     });
-    return rows.map((row) => this.mapper.toDomain(row));
+    return rows.map((row) => this.gatherQueryMapper.toDomain(row));
   }
 }

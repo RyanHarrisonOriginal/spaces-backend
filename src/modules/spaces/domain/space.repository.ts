@@ -1,12 +1,12 @@
 import { Space } from './space.entity';
 
-export const SpaceSave = {
+export const SpaceSaveStrategy = {
   Upsert: 'upsert',
   Delete: 'delete',
 } as const;
 
 export type SpaceSaveStrategyName =
-  (typeof SpaceSave)[keyof typeof SpaceSave];
+  (typeof SpaceSaveStrategy)[keyof typeof SpaceSaveStrategy];
 
 export abstract class SpaceRepository {
   abstract get(id: string): Promise<Space | null>;

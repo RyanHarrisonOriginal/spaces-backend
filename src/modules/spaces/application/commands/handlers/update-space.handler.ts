@@ -11,11 +11,11 @@ import { UpdateSpaceCommand } from '../update-space.command';
 
 export class UpdateSpaceHandler {
   constructor(
-    private readonly spaces: SpaceRepository,
+    private readonly spaceRepo: SpaceRepository,
   ) {}
 
   async execute(command: UpdateSpaceCommand): Promise<Space> {
-    const space = await this.spaces.get(command.spaceId);
+    const space = await this.spaceRepo.get(command.spaceId);
     if (!space || space.userId !== command.userId) {
       throw new NotFoundException('Space', command.spaceId);
     }
@@ -28,6 +28,6 @@ export class UpdateSpaceHandler {
       );
     }
 
-    return this.spaces.save(space);
+    return this.spaceRepo.save(space);
   }
 }

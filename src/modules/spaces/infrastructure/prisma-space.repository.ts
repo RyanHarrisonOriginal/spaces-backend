@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import { Space } from '../domain/space.entity';
 import {
   SpaceRepository,
-  SpaceSave,
+  SpaceSaveStrategy,
   SpaceSaveStrategyName,
 } from '../domain/space.repository';
 import { PrismaSpaceMapper } from './prisma-space.mapper';
@@ -13,10 +13,10 @@ import {
 } from './space-save.strategies';
 
 export class PrismaSpaceRepository extends SpaceRepository {
-  private readonly mapper = new PrismaSpaceMapper();
-  private readonly strategies = {
-    [SpaceSave.Upsert]: new UpsertSpaceSaveStrategy(),
-    [SpaceSave.Delete]: new DeleteSpaceSaveStrategy(),
+  private readonly spaceMapper = new PrismaSpaceMapper();
+  private readonly saveStrategies = {
+    [SpaceSaveStrategy.Upsert]: new UpsertSpaceSaveStrategy(),
+    [SpaceSaveStrategy.Delete]: new DeleteSpaceSaveStrategy(),
   };
 
   constructor(private readonly prisma: PrismaClient) {
@@ -36,18 +36,18 @@ export class PrismaSpaceRepository extends SpaceRepository {
 
   async save(
     entity: Space,
-    strategy: SpaceSaveStrategyName = SpaceSave.Upsert,
+    strategy: SpaceSaveStrategyName = SpaceSaveStrategy.Upsert,
   ): Promise<Space> {
-    return this.strategies[strategy].execute({
+    return this.saveStrategies[strategy].execute({
       prisma: this.prisma,
-      mapper: this.mapper,
+      mapper: this.spaceMapper,
       entity,
     });
   }
 
   private async getById(id: string): Promise<Space | null> {
     const row = await this.prisma.space.findUnique({ where: { id } });
-    return row ? this.mapper.toDomain(row) : null;
+    return row ? this.spaceMapper.toDomain(row) : null;
   }
 
   private async getByUserId(userId: string): Promise<Space[]> {
@@ -55,6 +55,6 @@ export class PrismaSpaceRepository extends SpaceRepository {
       where: { userId },
       orderBy: { createdAt: 'desc' },
     });
-    return rows.map((row) => this.mapper.toDomain(row));
+    return rows.map((row) => this.spaceMapper.toDomain(row));
   }
 }

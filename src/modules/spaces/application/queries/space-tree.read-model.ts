@@ -1,18 +1,3 @@
-import { ContentType } from '@prisma/client';
-
-export interface ContentItemReadModel {
-  id: string;
-  collectionId: string;
-  sourceId: string;
-  type: ContentType;
-  title: string;
-  thumbnail: string;
-  url: string | null;
-  meta: string | null;
-  sortOrder: number;
-  createdAt: Date;
-}
-
 export interface CollectionReadModel {
   id: string;
   spaceId: string;
@@ -22,7 +7,6 @@ export interface CollectionReadModel {
   createdAt: Date;
   updatedAt: Date;
   queries: string[];
-  content: ContentItemReadModel[];
 }
 
 export interface SpaceTreeReadModel {
