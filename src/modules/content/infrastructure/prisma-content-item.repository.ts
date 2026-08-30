@@ -1,103 +1,76 @@
-import { Injectable } from '@nestjs/common';
-import {
-  ContentItem as PrismaContentItem,
-  ContentType as PrismaContentType,
-} from '@prisma/client';
 
-import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service';
+import { PrismaClient } from '@prisma/client';
+import { ContentItem } from '../domain/content-item.entity';
 import {
-  ContentItem,
-  ContentType,
-} from '../domain/content-item.entity';
-import { ContentItemRepository } from '../domain/content-item.repository';
+  ContentItemRepository,
+  ContentItemSave,
+} from '../domain/content-item.repository';
+import {
+  ReplaceContentItemsSaveStrategy,
+  UpsertContentItemSaveStrategy,
+} from './content-item-save.strategies';
+import { PrismaContentItemMapper } from './prisma-content-item.mapper';
 
-@Injectable()
 export class PrismaContentItemRepository extends ContentItemRepository {
-  constructor(private readonly prisma: PrismaService) {
+  private readonly mapper = new PrismaContentItemMapper();
+  private readonly upsertStrategy = new UpsertContentItemSaveStrategy();
+  private readonly replaceStrategy = new ReplaceContentItemsSaveStrategy();
+
+  constructor(private readonly prisma: PrismaClient) {
     super();
   }
 
-  async findById(id: string): Promise<ContentItem | null> {
-    const row = await this.prisma.contentItem.findUnique({ where: { id } });
-    return row ? this.toDomain(row) : null;
+  async get(id: string): Promise<ContentItem | null>;
+  async get(query: { collectionId: string }): Promise<ContentItem[]>;
+  async get(
+    idOrQuery: string | { collectionId: string },
+  ): Promise<ContentItem | ContentItem[] | null> {
+    if (typeof idOrQuery === 'string') {
+      return this.getById(idOrQuery);
+    }
+    return this.getByCollectionId(idOrQuery.collectionId);
   }
 
-  async findByCollectionId(collectionId: string): Promise<ContentItem[]> {
+  async save(
+    entity: ContentItem,
+    strategy?: typeof ContentItemSave.Upsert,
+  ): Promise<ContentItem>;
+  async save(
+    input: { collectionId: string; items: ContentItem[] },
+    strategy: typeof ContentItemSave.Replace,
+  ): Promise<ContentItem[]>;
+  async save(
+    entityOrInput:
+      | ContentItem
+      | { collectionId: string; items: ContentItem[] },
+  ): Promise<ContentItem | ContentItem[]> {
+    if ('items' in entityOrInput) {
+      return this.replaceStrategy.execute({
+        prisma: this.prisma,
+        mapper: this.mapper,
+        collectionId: entityOrInput.collectionId,
+        entities: entityOrInput.items,
+      });
+    }
+    return this.upsertStrategy.execute({
+      prisma: this.prisma,
+      mapper: this.mapper,
+      entity: entityOrInput,
+    });
+  }
+
+  private async getById(id: string): Promise<ContentItem | null> {
+    const row = await this.prisma.contentItem.findUnique({ where: { id } });
+    return row ? this.mapper.toDomain(row) : null;
+  }
+
+  private async getByCollectionId(
+    collectionId: string,
+  ): Promise<ContentItem[]> {
     const rows = await this.prisma.contentItem.findMany({
       where: { collectionId },
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
     });
-    return rows.map((row) => this.toDomain(row));
-  }
-
-  async save(entity: ContentItem): Promise<ContentItem> {
-    const row = await this.prisma.contentItem.upsert({
-      where: { id: entity.id },
-      create: {
-        id: entity.id,
-        collectionId: entity.collectionId,
-        sourceId: entity.sourceId,
-        type: entity.type as PrismaContentType,
-        title: entity.title,
-        thumbnail: entity.thumbnail,
-        url: entity.url,
-        meta: entity.meta,
-        sortOrder: entity.sortOrder,
-        createdAt: entity.createdAt,
-      },
-      update: {
-        sourceId: entity.sourceId,
-        type: entity.type as PrismaContentType,
-        title: entity.title,
-        thumbnail: entity.thumbnail,
-        url: entity.url,
-        meta: entity.meta,
-        sortOrder: entity.sortOrder,
-      },
-    });
-    return this.toDomain(row);
-  }
-
-  async replaceForCollection(
-    collectionId: string,
-    items: ContentItem[],
-  ): Promise<ContentItem[]> {
-    await this.prisma.$transaction([
-      this.prisma.contentItem.deleteMany({ where: { collectionId } }),
-      this.prisma.contentItem.createMany({
-        data: items.map((item) => ({
-          id: item.id,
-          collectionId: item.collectionId,
-          sourceId: item.sourceId,
-          type: item.type as PrismaContentType,
-          title: item.title,
-          thumbnail: item.thumbnail,
-          url: item.url,
-          meta: item.meta,
-          sortOrder: item.sortOrder,
-          createdAt: item.createdAt,
-        })),
-      }),
-    ]);
-    return this.findByCollectionId(collectionId);
-  }
-
-  async delete(id: string): Promise<void> {
-    await this.prisma.contentItem.delete({ where: { id } });
-  }
-
-  private toDomain(row: PrismaContentItem): ContentItem {
-    return ContentItem.reconstitute({
-      id: row.id,
-      collectionId: row.collectionId,
-      sourceId: row.sourceId,
-      type: row.type as ContentType,
-      title: row.title,
-      thumbnail: row.thumbnail,
-      url: row.url,
-      meta: row.meta,
-      sortOrder: row.sortOrder,
-      createdAt: row.createdAt,
-    });
+    return rows.map((row) => this.mapper.toDomain(row));
   }
 }

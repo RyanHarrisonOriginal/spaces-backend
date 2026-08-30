@@ -1,0 +1,26 @@
+---
+description: Persistence and mapper conventions (get/save, service orchestration)
+globs: "**/*{repository,mapper,service}*.ts"
+alwaysApply: false
+---
+
+# Persistence
+
+Repositories expose only `get` and `save`. Use-case steps (lock, supersede, insert, version lookup) are private methods on the implementation.
+
+Application services orchestrate:
+
+```text
+get → mapper (shape the change) → save
+```
+
+Do not add use-case methods to the repository. Do not put Prisma/SQL in the service.
+
+When `save` must behave differently for distinct use cases, use the **Strategy pattern**. Do not branch inside a single save method. Each strategy owns one use case's persistence rules; the repository coordinates persistence.
+
+Use a class mapper for shape changes:
+
+- Domain mapper: current record + new data → next domain record
+- Prisma mapper: row ↔ domain (`toDomain` / `toCreateData`)
+
+Canonical example: `packages/discovery` collection discovery profile.

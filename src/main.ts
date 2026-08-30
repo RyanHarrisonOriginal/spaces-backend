@@ -1,28 +1,25 @@
-import { ValidationPipe } from '@nestjs/common';
-import { NestFactory } from '@nestjs/core';
+import 'reflect-metadata';
+import { config } from 'dotenv';
 
-import { AppModule } from './app.module';
-import { DomainExceptionFilter } from './shared/presentation/filters/domain-exception.filter';
+import { disconnectPrisma } from '../packages/db/src';
+import { closeJobQueue } from '../packages/queue/src';
+import { createApp } from './http/create-app';
 
-async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule);
+config();
 
-  app.setGlobalPrefix('api');
-  app.enableCors();
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-      transformOptions: { enableImplicitConversion: true },
-    }),
-  );
-  app.useGlobalFilters(new DomainExceptionFilter());
-
-  const port = Number(process.env.PORT ?? 3000);
-  await app.listen(port);
-  // eslint-disable-next-line no-console
+const port = Number(process.env.PORT ?? 3000);
+const app = createApp();
+const server = app.listen(port, () => {
   console.log(`Spaces API listening on http://localhost:${port}/api`);
+});
+
+async function shutdown(signal: string): Promise<void> {
+  console.log(`API shutting down (${signal})`);
+  server.close();
+  await closeJobQueue();
+  await disconnectPrisma();
+  process.exit(0);
 }
 
-void bootstrap();
+process.on('SIGINT', () => void shutdown('SIGINT'));
+process.on('SIGTERM', () => void shutdown('SIGTERM'));

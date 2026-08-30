@@ -1,76 +1,60 @@
-import { Injectable } from '@nestjs/common';
-import { Space as PrismaSpace, SpaceView as PrismaSpaceView } from '@prisma/client';
 
-import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service';
-import { Space, SpaceView } from '../domain/space.entity';
-import { SpaceRepository } from '../domain/space.repository';
+import { PrismaClient } from '@prisma/client';
+import { Space } from '../domain/space.entity';
+import {
+  SpaceRepository,
+  SpaceSave,
+  SpaceSaveStrategyName,
+} from '../domain/space.repository';
+import { PrismaSpaceMapper } from './prisma-space.mapper';
+import {
+  DeleteSpaceSaveStrategy,
+  UpsertSpaceSaveStrategy,
+} from './space-save.strategies';
 
-@Injectable()
 export class PrismaSpaceRepository extends SpaceRepository {
-  constructor(private readonly prisma: PrismaService) {
+  private readonly mapper = new PrismaSpaceMapper();
+  private readonly strategies = {
+    [SpaceSave.Upsert]: new UpsertSpaceSaveStrategy(),
+    [SpaceSave.Delete]: new DeleteSpaceSaveStrategy(),
+  };
+
+  constructor(private readonly prisma: PrismaClient) {
     super();
   }
 
-  async findById(id: string): Promise<Space | null> {
-    const row = await this.prisma.space.findUnique({ where: { id } });
-    return row ? this.toDomain(row) : null;
+  async get(id: string): Promise<Space | null>;
+  async get(query: { userId: string }): Promise<Space[]>;
+  async get(
+    idOrQuery: string | { userId: string },
+  ): Promise<Space | Space[] | null> {
+    if (typeof idOrQuery === 'string') {
+      return this.getById(idOrQuery);
+    }
+    return this.getByUserId(idOrQuery.userId);
   }
 
-  async findByUserId(userId: string): Promise<Space[]> {
+  async save(
+    entity: Space,
+    strategy: SpaceSaveStrategyName = SpaceSave.Upsert,
+  ): Promise<Space> {
+    return this.strategies[strategy].execute({
+      prisma: this.prisma,
+      mapper: this.mapper,
+      entity,
+    });
+  }
+
+  private async getById(id: string): Promise<Space | null> {
+    const row = await this.prisma.space.findUnique({ where: { id } });
+    return row ? this.mapper.toDomain(row) : null;
+  }
+
+  private async getByUserId(userId: string): Promise<Space[]> {
     const rows = await this.prisma.space.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
     });
-    return rows.map((row) => this.toDomain(row));
-  }
-
-  async save(entity: Space): Promise<Space> {
-    const row = await this.prisma.space.upsert({
-      where: { id: entity.id },
-      create: {
-        id: entity.id,
-        userId: entity.userId,
-        name: entity.name,
-        description: entity.description,
-        accent: entity.accent,
-        headerFont: entity.headerFont,
-        bgColor: entity.bgColor,
-        textColor: entity.textColor,
-        view: entity.view as PrismaSpaceView,
-        createdAt: entity.createdAt,
-        updatedAt: entity.updatedAt,
-      },
-      update: {
-        name: entity.name,
-        description: entity.description,
-        accent: entity.accent,
-        headerFont: entity.headerFont,
-        bgColor: entity.bgColor,
-        textColor: entity.textColor,
-        view: entity.view as PrismaSpaceView,
-        updatedAt: entity.updatedAt,
-      },
-    });
-    return this.toDomain(row);
-  }
-
-  async delete(id: string): Promise<void> {
-    await this.prisma.space.delete({ where: { id } });
-  }
-
-  private toDomain(row: PrismaSpace): Space {
-    return Space.reconstitute({
-      id: row.id,
-      userId: row.userId,
-      name: row.name,
-      description: row.description,
-      accent: row.accent,
-      headerFont: row.headerFont,
-      bgColor: row.bgColor,
-      textColor: row.textColor,
-      view: row.view as SpaceView,
-      createdAt: row.createdAt,
-      updatedAt: row.updatedAt,
-    });
+    return rows.map((row) => this.mapper.toDomain(row));
   }
 }

@@ -1,64 +1,60 @@
-import { Injectable } from '@nestjs/common';
-import { Collection as PrismaCollection } from '@prisma/client';
 
-import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service';
+import { PrismaClient } from '@prisma/client';
 import { Collection } from '../domain/collection.entity';
-import { CollectionRepository } from '../domain/collection.repository';
+import {
+  CollectionRepository,
+  CollectionSave,
+  CollectionSaveStrategyName,
+} from '../domain/collection.repository';
+import {
+  DeleteCollectionSaveStrategy,
+  UpsertCollectionSaveStrategy,
+} from './collection-save.strategies';
+import { PrismaCollectionMapper } from './prisma-collection.mapper';
 
-@Injectable()
 export class PrismaCollectionRepository extends CollectionRepository {
-  constructor(private readonly prisma: PrismaService) {
+  private readonly mapper = new PrismaCollectionMapper();
+  private readonly strategies = {
+    [CollectionSave.Upsert]: new UpsertCollectionSaveStrategy(),
+    [CollectionSave.Delete]: new DeleteCollectionSaveStrategy(),
+  };
+
+  constructor(private readonly prisma: PrismaClient) {
     super();
   }
 
-  async findById(id: string): Promise<Collection | null> {
-    const row = await this.prisma.collection.findUnique({ where: { id } });
-    return row ? this.toDomain(row) : null;
+  async get(id: string): Promise<Collection | null>;
+  async get(query: { spaceId: string }): Promise<Collection[]>;
+  async get(
+    idOrQuery: string | { spaceId: string },
+  ): Promise<Collection | Collection[] | null> {
+    if (typeof idOrQuery === 'string') {
+      return this.getById(idOrQuery);
+    }
+    return this.getBySpaceId(idOrQuery.spaceId);
   }
 
-  async findBySpaceId(spaceId: string): Promise<Collection[]> {
+  async save(
+    entity: Collection,
+    strategy: CollectionSaveStrategyName = CollectionSave.Upsert,
+  ): Promise<Collection> {
+    return this.strategies[strategy].execute({
+      prisma: this.prisma,
+      mapper: this.mapper,
+      entity,
+    });
+  }
+
+  private async getById(id: string): Promise<Collection | null> {
+    const row = await this.prisma.collection.findUnique({ where: { id } });
+    return row ? this.mapper.toDomain(row) : null;
+  }
+
+  private async getBySpaceId(spaceId: string): Promise<Collection[]> {
     const rows = await this.prisma.collection.findMany({
       where: { spaceId },
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
     });
-    return rows.map((row) => this.toDomain(row));
-  }
-
-  async save(entity: Collection): Promise<Collection> {
-    const row = await this.prisma.collection.upsert({
-      where: { id: entity.id },
-      create: {
-        id: entity.id,
-        spaceId: entity.spaceId,
-        name: entity.name,
-        description: entity.description,
-        sortOrder: entity.sortOrder,
-        createdAt: entity.createdAt,
-        updatedAt: entity.updatedAt,
-      },
-      update: {
-        name: entity.name,
-        description: entity.description,
-        sortOrder: entity.sortOrder,
-        updatedAt: entity.updatedAt,
-      },
-    });
-    return this.toDomain(row);
-  }
-
-  async delete(id: string): Promise<void> {
-    await this.prisma.collection.delete({ where: { id } });
-  }
-
-  private toDomain(row: PrismaCollection): Collection {
-    return Collection.reconstitute({
-      id: row.id,
-      spaceId: row.spaceId,
-      name: row.name,
-      description: row.description,
-      sortOrder: row.sortOrder,
-      createdAt: row.createdAt,
-      updatedAt: row.updatedAt,
-    });
+    return rows.map((row) => this.mapper.toDomain(row));
   }
 }

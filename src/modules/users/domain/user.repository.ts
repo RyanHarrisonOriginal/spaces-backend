@@ -1,8 +1,8 @@
-import { Repository } from '../../../shared/domain/repository';
 import { User } from './user.entity';
 
-export abstract class UserRepository extends Repository<User> {
-  abstract findByEmail(email: string): Promise<User | null>;
+export abstract class UserRepository {
+  abstract get(id: string): Promise<User | null>;
+  abstract get(query: { email: string }): Promise<User | null>;
+  abstract save(entity: User): Promise<User>;
 }
 
-export const USER_REPOSITORY = Symbol('USER_REPOSITORY');

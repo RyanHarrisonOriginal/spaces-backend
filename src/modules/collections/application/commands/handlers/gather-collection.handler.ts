@@ -1,14 +1,12 @@
-import { Inject } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { PrismaClient } from '@prisma/client';
 import { randomUUID } from 'crypto';
 
 import { ValidationException } from '../../../../../shared/domain/exceptions';
-import { PrismaService } from '../../../../../shared/infrastructure/prisma/prisma.service';
 import { CollectionAccessService } from '../../services/collection-access.service';
 import { GatherQuery } from '../../../domain/gather-query.entity';
 import {
-  GATHER_QUERY_REPOSITORY,
   GatherQueryRepository,
+  GatherQuerySave,
 } from '../../../domain/gather-query.repository';
 import { GatherCollectionCommand } from '../gather-collection.command';
 
@@ -29,15 +27,11 @@ function deriveQueries(name: string, description: string): string[] {
   ];
 }
 
-@CommandHandler(GatherCollectionCommand)
-export class GatherCollectionHandler
-  implements ICommandHandler<GatherCollectionCommand>
-{
+export class GatherCollectionHandler {
   constructor(
     private readonly access: CollectionAccessService,
-    @Inject(GATHER_QUERY_REPOSITORY)
     private readonly gatherQueries: GatherQueryRepository,
-    private readonly prisma: PrismaService,
+    private readonly prisma: PrismaClient,
   ) {}
 
   async execute(command: GatherCollectionCommand) {
@@ -62,15 +56,18 @@ export class GatherCollectionHandler
     );
 
     const queries = deriveQueries(collection.name, collection.description);
-    await this.gatherQueries.replaceForCollection(
-      collection.id,
-      queries.map((query) =>
-        GatherQuery.create({
-          id: randomUUID(),
-          collectionId: collection.id,
-          query,
-        }),
-      ),
+    await this.gatherQueries.save(
+      {
+        collectionId: collection.id,
+        items: queries.map((query) =>
+          GatherQuery.create({
+            id: randomUUID(),
+            collectionId: collection.id,
+            query,
+          }),
+        ),
+      },
+      GatherQuerySave.Replace,
     );
 
     const seed = collection.name;

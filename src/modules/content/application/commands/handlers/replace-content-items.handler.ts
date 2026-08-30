@@ -1,22 +1,16 @@
-import { Inject } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { randomUUID } from 'crypto';
 
 import { ValidationException } from '../../../../../shared/domain/exceptions';
 import { CollectionAccessService } from '../../../../collections/application/services/collection-access.service';
 import { ContentItem } from '../../../domain/content-item.entity';
 import {
-  CONTENT_ITEM_REPOSITORY,
   ContentItemRepository,
+  ContentItemSave,
 } from '../../../domain/content-item.repository';
 import { ReplaceContentItemsCommand } from '../replace-content-items.command';
 
-@CommandHandler(ReplaceContentItemsCommand)
-export class ReplaceContentItemsHandler
-  implements ICommandHandler<ReplaceContentItemsCommand>
-{
+export class ReplaceContentItemsHandler {
   constructor(
-    @Inject(CONTENT_ITEM_REPOSITORY)
     private readonly contentItems: ContentItemRepository,
     private readonly access: CollectionAccessService,
   ) {}
@@ -41,9 +35,9 @@ export class ReplaceContentItemsHandler
           sortOrder: index,
         }),
       );
-      return this.contentItems.replaceForCollection(
-        command.collectionId,
-        items,
+      return this.contentItems.save(
+        { collectionId: command.collectionId, items },
+        ContentItemSave.Replace,
       );
     } catch (error) {
       throw new ValidationException(

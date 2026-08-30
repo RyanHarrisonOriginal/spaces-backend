@@ -1,5 +1,8 @@
 export abstract class Repository<T, TId = string> {
-  abstract findById(id: TId): Promise<T | null>;
+  abstract get(id: TId): Promise<T | null>;
   abstract save(entity: T): Promise<T>;
-  abstract delete(id: TId): Promise<void>;
+}
+
+export interface SaveStrategy<TContext, TResult> {
+  execute(context: TContext): Promise<TResult>;
 }

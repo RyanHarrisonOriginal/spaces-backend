@@ -1,0 +1,11 @@
+---
+description: Keep HTTP routes in *.routes.ts, not routers
+globs: "**/{*.router.ts,*.routes.ts}"
+alwaysApply: false
+---
+
+# HTTP routes
+
+Declare method, path, and status codes in a sibling `*.routes.ts` file. Routers stay free of inline path strings and call `mount(router, SomeRoutes.action, ...)`.
+
+Reference: `src/modules/collections/presentation/collections.routes.ts`

@@ -1,5 +1,3 @@
-import { Inject } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { randomUUID } from 'crypto';
 
 import {
@@ -7,27 +5,22 @@ import {
   ValidationException,
 } from '../../../../../shared/domain/exceptions';
 import {
-  USER_REPOSITORY,
   UserRepository,
 } from '../../../../users/domain/user.repository';
 import { Space } from '../../../domain/space.entity';
 import {
-  SPACE_REPOSITORY,
   SpaceRepository,
 } from '../../../domain/space.repository';
 import { CreateSpaceCommand } from '../create-space.command';
 
-@CommandHandler(CreateSpaceCommand)
-export class CreateSpaceHandler implements ICommandHandler<CreateSpaceCommand> {
+export class CreateSpaceHandler {
   constructor(
-    @Inject(SPACE_REPOSITORY)
     private readonly spaces: SpaceRepository,
-    @Inject(USER_REPOSITORY)
     private readonly users: UserRepository,
   ) {}
 
   async execute(command: CreateSpaceCommand): Promise<Space> {
-    const user = await this.users.findById(command.userId);
+    const user = await this.users.get(command.userId);
     if (!user) {
       throw new NotFoundException('User', command.userId);
     }

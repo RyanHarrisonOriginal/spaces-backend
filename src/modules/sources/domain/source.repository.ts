@@ -1,8 +1,8 @@
-import { Repository } from '../../../shared/domain/repository';
 import { Source } from './source.entity';
 
-export const SOURCE_REPOSITORY = Symbol('SOURCE_REPOSITORY');
-
-export abstract class SourceRepository extends Repository<Source> {
-  abstract findAllActive(): Promise<Source[]>;
+export abstract class SourceRepository {
+  abstract get(id: string): Promise<Source | null>;
+  abstract get(query: { active: true }): Promise<Source[]>;
+  abstract save(entity: Source): Promise<Source>;
 }
+

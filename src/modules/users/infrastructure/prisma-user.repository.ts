@@ -1,61 +1,46 @@
-import { Injectable } from '@nestjs/common';
-import { User as PrismaUser } from '@prisma/client';
 
-import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service';
-import { ThemeMode, User } from '../domain/user.entity';
+import { PrismaClient } from '@prisma/client';
+import { User } from '../domain/user.entity';
 import { UserRepository } from '../domain/user.repository';
+import { PrismaUserMapper } from './prisma-user.mapper';
+import { UpsertUserSaveStrategy } from './user-save.strategies';
 
-@Injectable()
 export class PrismaUserRepository extends UserRepository {
-  constructor(private readonly prisma: PrismaService) {
+  private readonly mapper = new PrismaUserMapper();
+  private readonly upsertStrategy = new UpsertUserSaveStrategy();
+
+  constructor(private readonly prisma: PrismaClient) {
     super();
   }
 
-  async findById(id: string): Promise<User | null> {
-    const row = await this.prisma.user.findUnique({ where: { id } });
-    return row ? this.toDomain(row) : null;
-  }
-
-  async findByEmail(email: string): Promise<User | null> {
-    const row = await this.prisma.user.findUnique({
-      where: { email: email.trim().toLowerCase() },
-    });
-    return row ? this.toDomain(row) : null;
+  async get(id: string): Promise<User | null>;
+  async get(query: { email: string }): Promise<User | null>;
+  async get(
+    idOrQuery: string | { email: string },
+  ): Promise<User | null> {
+    if (typeof idOrQuery === 'string') {
+      return this.getById(idOrQuery);
+    }
+    return this.getByEmail(idOrQuery.email);
   }
 
   async save(entity: User): Promise<User> {
-    const row = await this.prisma.user.upsert({
-      where: { id: entity.id },
-      create: {
-        id: entity.id,
-        email: entity.email,
-        displayName: entity.displayName,
-        themeMode: entity.themeMode,
-        createdAt: entity.createdAt,
-        updatedAt: entity.updatedAt,
-      },
-      update: {
-        email: entity.email,
-        displayName: entity.displayName,
-        themeMode: entity.themeMode,
-        updatedAt: entity.updatedAt,
-      },
+    return this.upsertStrategy.execute({
+      prisma: this.prisma,
+      mapper: this.mapper,
+      entity,
     });
-    return this.toDomain(row);
   }
 
-  async delete(id: string): Promise<void> {
-    await this.prisma.user.delete({ where: { id } });
+  private async getById(id: string): Promise<User | null> {
+    const row = await this.prisma.user.findUnique({ where: { id } });
+    return row ? this.mapper.toDomain(row) : null;
   }
 
-  private toDomain(row: PrismaUser): User {
-    return User.reconstitute({
-      id: row.id,
-      email: row.email,
-      displayName: row.displayName,
-      themeMode: row.themeMode as ThemeMode,
-      createdAt: row.createdAt,
-      updatedAt: row.updatedAt,
+  private async getByEmail(email: string): Promise<User | null> {
+    const row = await this.prisma.user.findUnique({
+      where: { email: email.trim().toLowerCase() },
     });
+    return row ? this.mapper.toDomain(row) : null;
   }
 }

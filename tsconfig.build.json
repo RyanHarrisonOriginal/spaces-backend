@@ -5,5 +5,5 @@
     "outDir": "./dist"
   },
   "include": ["src/**/*", "packages/**/*"],
-  "exclude": ["node_modules", "dist", "apps", "prisma"]
+  "exclude": ["node_modules", "dist", "apps", "prisma", "**/*.spec.ts"]
 }

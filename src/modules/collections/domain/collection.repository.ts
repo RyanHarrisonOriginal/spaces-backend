@@ -1,8 +1,19 @@
-import { Repository } from '../../../shared/domain/repository';
 import { Collection } from './collection.entity';
 
-export abstract class CollectionRepository extends Repository<Collection> {
-  abstract findBySpaceId(spaceId: string): Promise<Collection[]>;
+export const CollectionSave = {
+  Upsert: 'upsert',
+  Delete: 'delete',
+} as const;
+
+export type CollectionSaveStrategyName =
+  (typeof CollectionSave)[keyof typeof CollectionSave];
+
+export abstract class CollectionRepository {
+  abstract get(id: string): Promise<Collection | null>;
+  abstract get(query: { spaceId: string }): Promise<Collection[]>;
+  abstract save(
+    entity: Collection,
+    strategy?: CollectionSaveStrategyName,
+  ): Promise<Collection>;
 }
 
-export const COLLECTION_REPOSITORY = Symbol('COLLECTION_REPOSITORY');

@@ -1,39 +1,30 @@
-import { Inject } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 
 import {
   NotFoundException,
   ValidationException,
 } from '../../../../../shared/domain/exceptions';
 import {
-  SPACE_REPOSITORY,
   SpaceRepository,
 } from '../../../../spaces/domain/space.repository';
 import { Collection } from '../../../domain/collection.entity';
 import {
-  COLLECTION_REPOSITORY,
   CollectionRepository,
 } from '../../../domain/collection.repository';
 import { UpdateCollectionCommand } from '../update-collection.command';
 
-@CommandHandler(UpdateCollectionCommand)
-export class UpdateCollectionHandler
-  implements ICommandHandler<UpdateCollectionCommand>
-{
+export class UpdateCollectionHandler {
   constructor(
-    @Inject(COLLECTION_REPOSITORY)
     private readonly collections: CollectionRepository,
-    @Inject(SPACE_REPOSITORY)
     private readonly spaces: SpaceRepository,
   ) {}
 
   async execute(command: UpdateCollectionCommand): Promise<Collection> {
-    const collection = await this.collections.findById(command.collectionId);
+    const collection = await this.collections.get(command.collectionId);
     if (!collection) {
       throw new NotFoundException('Collection', command.collectionId);
     }
 
-    const space = await this.spaces.findById(collection.spaceId);
+    const space = await this.spaces.get(collection.spaceId);
     if (!space || space.userId !== command.userId) {
       throw new NotFoundException('Collection', command.collectionId);
     }

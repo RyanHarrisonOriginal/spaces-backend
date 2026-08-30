@@ -1,52 +1,53 @@
 {
   "name": "spaces-backend",
   "version": "1.0.0",
-  "description": "Spaces API — DDD + CQRS + Prisma",
+  "description": "Spaces API — Express + Prisma + BullMQ",
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
     "postinstall": "prisma generate",
-    "build": "prisma generate && nest build",
-    "start": "nest start",
-    "start:dev": "nest start --watch",
+    "build": "prisma generate && tsc -p tsconfig.build.json",
+    "start": "tsx src/main.ts",
+    "start:dev": "tsx watch src/main.ts",
     "start:prod": "node dist/src/main.js",
     "dev": "concurrently -n api,worker -c cyan,magenta \"npm run dev:api\" \"npm run dev:worker\"",
-    "dev:api": "nest start --watch",
+    "dev:api": "tsx watch src/main.ts",
     "dev:worker": "tsx watch apps/worker/src/index.ts",
     "start:worker": "tsx apps/worker/src/index.ts",
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push",
     "prisma:seed": "tsx prisma/seed.ts",
     "prisma:studio": "prisma studio",
-    "db:deploy": "prisma db push && tsx prisma/seed.ts"
+    "bullmq:migrate": "tsx packages/queue/src/migrate.ts",
+    "db:deploy": "prisma db push && npm run bullmq:migrate && tsx prisma/seed.ts",
+    "test": "tsx --test packages/discovery/src/application/services/collection-discovery-profile.service.spec.ts packages/discovery/src/infrastructure/llm/openai/openai.adapter.spec.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
-    "@nestjs/common": "^11.1.6",
-    "@nestjs/config": "^4.0.2",
-    "@nestjs/core": "^11.1.6",
-    "@nestjs/cqrs": "^11.0.3",
-    "@nestjs/platform-express": "^11.1.6",
     "@prisma/client": "^6.14.0",
+    "bullmq": "^6.3.2",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^5.1.0",
+    "openai": "^7.8.0",
+    "pg": "^8.23.0",
     "prisma": "^6.14.0",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.2",
     "tsx": "^4.20.5",
     "uuid": "^11.1.0",
-    "dotenv": "^16.6.1",
     "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@nestjs/cli": "^11.0.10",
+    "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
     "@types/node": "^24.3.0",
+    "@types/pg": "^8.23.1",
     "@types/uuid": "^10.0.0",
     "concurrently": "^9.2.1",
-    "ts-node": "^10.9.2",
     "typescript": "^5.9.2"
   }
 }

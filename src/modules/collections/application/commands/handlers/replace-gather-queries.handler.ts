@@ -1,22 +1,16 @@
-import { Inject } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { randomUUID } from 'crypto';
 
 import { ValidationException } from '../../../../../shared/domain/exceptions';
 import { CollectionAccessService } from '../../services/collection-access.service';
 import { GatherQuery } from '../../../domain/gather-query.entity';
 import {
-  GATHER_QUERY_REPOSITORY,
   GatherQueryRepository,
+  GatherQuerySave,
 } from '../../../domain/gather-query.repository';
 import { ReplaceGatherQueriesCommand } from '../replace-gather-queries.command';
 
-@CommandHandler(ReplaceGatherQueriesCommand)
-export class ReplaceGatherQueriesHandler
-  implements ICommandHandler<ReplaceGatherQueriesCommand>
-{
+export class ReplaceGatherQueriesHandler {
   constructor(
-    @Inject(GATHER_QUERY_REPOSITORY)
     private readonly gatherQueries: GatherQueryRepository,
     private readonly access: CollectionAccessService,
   ) {}
@@ -35,9 +29,9 @@ export class ReplaceGatherQueriesHandler
           query,
         }),
       );
-      return this.gatherQueries.replaceForCollection(
-        command.collectionId,
-        entities,
+      return this.gatherQueries.save(
+        { collectionId: command.collectionId, items: entities },
+        GatherQuerySave.Replace,
       );
     } catch (error) {
       throw new ValidationException(

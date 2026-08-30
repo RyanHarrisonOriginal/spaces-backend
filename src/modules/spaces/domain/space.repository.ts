@@ -1,8 +1,19 @@
-import { Repository } from '../../../shared/domain/repository';
 import { Space } from './space.entity';
 
-export abstract class SpaceRepository extends Repository<Space> {
-  abstract findByUserId(userId: string): Promise<Space[]>;
+export const SpaceSave = {
+  Upsert: 'upsert',
+  Delete: 'delete',
+} as const;
+
+export type SpaceSaveStrategyName =
+  (typeof SpaceSave)[keyof typeof SpaceSave];
+
+export abstract class SpaceRepository {
+  abstract get(id: string): Promise<Space | null>;
+  abstract get(query: { userId: string }): Promise<Space[]>;
+  abstract save(
+    entity: Space,
+    strategy?: SpaceSaveStrategyName,
+  ): Promise<Space>;
 }
 
-export const SPACE_REPOSITORY = Symbol('SPACE_REPOSITORY');

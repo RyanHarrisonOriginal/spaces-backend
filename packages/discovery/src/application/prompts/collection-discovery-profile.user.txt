@@ -1,0 +1,5 @@
+SPACE DESCRIPTION
+{{spaceDescription}}
+
+COLLECTION DESCRIPTION
+{{collectionDescription}}

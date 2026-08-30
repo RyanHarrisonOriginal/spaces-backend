@@ -24,21 +24,11 @@ enum SpaceView {
   @@map("space_view")
 }
 
-enum JobStatus {
-  pending
-  processing
-  completed
-  failed
-
-  @@map("job_status")
-}
-
-enum SpaceDiscoveryProfileStatus {
+enum CollectionDiscoveryProfileStatus {
   active
   superseded
-  failed
 
-  @@map("space_discovery_profile_status")
+  @@map("collection_discovery_profile_status")
 }
 
 model User {
@@ -67,61 +57,44 @@ model Space {
   updatedAt         DateTime                @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   user              User                    @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   collections       Collection[]
-  discoveryProfiles SpaceDiscoveryProfile[]
 
   @@index([userId], map: "idx_spaces_user_id")
   @@map("spaces")
 }
 
-model Job {
-  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  type        String
-  payload     Json      @map("payload_json") @db.JsonB
-  status      JobStatus @default(pending)
-  attempts    Int       @default(0)
-  maxAttempts Int       @default(3) @map("max_attempts")
-  availableAt DateTime  @default(now()) @map("available_at") @db.Timestamptz(6)
-  lockedAt    DateTime? @map("locked_at") @db.Timestamptz(6)
-  lockedBy    String?   @map("locked_by")
-  lastError   String?   @map("last_error")
-  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  completedAt DateTime? @map("completed_at") @db.Timestamptz(6)
-
-  @@index([status, availableAt], map: "idx_jobs_status_available_at")
-  @@index([type], map: "idx_jobs_type")
-  @@map("jobs")
-}
-
-model SpaceDiscoveryProfile {
-  id           String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  spaceId      String                       @map("space_id") @db.Uuid
-  version      Int
-  profile      Json                         @map("profile_json") @db.JsonB
-  status       SpaceDiscoveryProfileStatus  @default(active)
-  jobId        String?                      @unique @map("job_id") @db.Uuid
-  createdAt    DateTime                     @default(now()) @map("created_at") @db.Timestamptz(6)
-  supersededAt DateTime?                    @map("superseded_at") @db.Timestamptz(6)
-  space        Space                        @relation(fields: [spaceId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
-  @@unique([spaceId, version], map: "uq_space_discovery_profiles_space_version")
-  @@index([spaceId, status], map: "idx_space_discovery_profiles_space_status")
-  @@map("space_discovery_profiles")
-}
-
 model Collection {
-  id            String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  spaceId       String        @map("space_id") @db.Uuid
-  name          String
-  description   String        @default("")
-  sortOrder     Int           @default(0) @map("sort_order")
-  createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt     DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  space         Space         @relation(fields: [spaceId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  gatherQueries GatherQuery[]
-  contentItems  ContentItem[]
+  id                String                         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  spaceId           String                         @map("space_id") @db.Uuid
+  name              String
+  description       String                         @default("")
+  sortOrder         Int                            @default(0) @map("sort_order")
+  createdAt         DateTime                       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime                       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  space             Space                          @relation(fields: [spaceId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  gatherQueries     GatherQuery[]
+  contentItems      ContentItem[]
+  discoveryProfiles CollectionDiscoveryProfile[]
 
   @@index([spaceId], map: "idx_collections_space_id")
   @@map("collections")
+}
+
+model CollectionDiscoveryProfile {
+  id            String                            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  collectionId  String                            @map("collection_id") @db.Uuid
+  version       Int
+  profile       Json                              @map("profile_json") @db.JsonB
+  status        CollectionDiscoveryProfileStatus  @default(active)
+  provider      String
+  model         String
+  promptVersion String                            @map("prompt_version")
+  createdAt     DateTime                          @default(now()) @map("created_at") @db.Timestamptz(6)
+  supersededAt  DateTime?                         @map("superseded_at") @db.Timestamptz(6)
+  collection    Collection                        @relation(fields: [collectionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([collectionId, version], map: "uq_collection_discovery_profiles_collection_version")
+  @@index([collectionId, status], map: "idx_collection_discovery_profiles_collection_status")
+  @@map("collection_discovery_profiles")
 }
 
 model GatherQuery {

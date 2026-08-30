@@ -1,12 +1,10 @@
 export {
   JOB_TYPES,
-  generateSpaceDiscoveryProfilePayloadSchema,
+  generateCollectionDiscoveryProfilePayloadSchema,
 } from './jobs';
 export type {
   EnqueueJobInput,
-  GenerateSpaceDiscoveryProfilePayload,
+  GenerateCollectionDiscoveryProfilePayload,
   JobPayloadMap,
   JobType,
 } from './jobs';
-export { spaceDiscoveryProfileSchema } from './space-discovery-profile';
-export type { SpaceDiscoveryProfile } from './space-discovery-profile';

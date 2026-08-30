@@ -1,11 +1,7 @@
-import { Inject } from '@nestjs/common';
-import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
-import { Prisma } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 
 import { NotFoundException } from '../../../../../shared/domain/exceptions';
-import { PrismaService } from '../../../../../shared/infrastructure/prisma/prisma.service';
 import {
-  SPACE_REPOSITORY,
   SpaceRepository,
 } from '../../../domain/space.repository';
 import { GetSpaceTreeQuery } from '../get-space-tree.query';
@@ -30,18 +26,14 @@ const spaceTreeInclude = {
 
 type SpaceTreeRow = Prisma.SpaceGetPayload<{ include: typeof spaceTreeInclude }>;
 
-@QueryHandler(GetSpaceTreeQuery)
-export class GetSpaceTreeHandler
-  implements IQueryHandler<GetSpaceTreeQuery, SpaceTreeReadModel>
-{
+export class GetSpaceTreeHandler {
   constructor(
-    @Inject(SPACE_REPOSITORY)
     private readonly spaces: SpaceRepository,
-    private readonly prisma: PrismaService,
+    private readonly prisma: PrismaClient,
   ) {}
 
   async execute(query: GetSpaceTreeQuery): Promise<SpaceTreeReadModel> {
-    const space = await this.spaces.findById(query.spaceId);
+    const space = await this.spaces.get(query.spaceId);
     if (!space || space.userId !== query.userId) {
       throw new NotFoundException('Space', query.spaceId);
     }
