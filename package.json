@@ -20,7 +20,7 @@
     "prisma:studio": "prisma studio",
     "bullmq:migrate": "tsx packages/queue/src/migrate.ts",
     "db:deploy": "prisma db push && npm run bullmq:migrate && tsx prisma/seed.ts",
-    "test": "tsx --test packages/discovery/src/application/services/collection-discovery-profile.service.spec.ts packages/discovery/src/infrastructure/llm/openai/openai.adapter.spec.ts"
+    "test": "tsx --test packages/discovery/src/application/services/collection-discovery-profile.service.spec.ts packages/discovery/src/infrastructure/llm/openai/openai.adapter.spec.ts packages/discovery/src/infrastructure/youtube/youtube-search.adapter.spec.ts src/modules/collections/application/services/gather-collection.service.spec.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

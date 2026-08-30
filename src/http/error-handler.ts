@@ -1,5 +1,6 @@
 import type { NextFunction, Request, Response } from 'express';
 
+import { ContentSearchError } from '../../packages/discovery/src';
 import {
   ConflictException,
   DomainException,
@@ -40,6 +41,15 @@ export function errorHandler(
   if (error instanceof ValidationException) {
     res.status(422).json({
       statusCode: 422,
+      error: error.name,
+      message: error.message,
+    });
+    return;
+  }
+  if (error instanceof ContentSearchError) {
+    const statusCode = error.kind === 'configuration' ? 500 : 502;
+    res.status(statusCode).json({
+      statusCode,
       error: error.name,
       message: error.message,
     });

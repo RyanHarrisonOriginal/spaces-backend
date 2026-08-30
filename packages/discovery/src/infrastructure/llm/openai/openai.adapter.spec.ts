@@ -13,13 +13,20 @@ const validPayload = {
   negativeSignals: ['highlight reels'],
 };
 
-function clientReturning(content: string | null): OpenAiChatClient {
+function clientReturning(
+  content: string | null,
+  captured: Array<{ temperature?: number; systemContent?: string }> = [],
+): OpenAiChatClient {
   return {
     chat: {
       completions: {
-        async create() {
+        async create(params) {
+          captured.push({
+            temperature: params.temperature,
+            systemContent: params.messages[0]?.content,
+          });
           return {
-            model: 'gpt-4o-mini',
+            model: params.model,
             choices: [{ message: { content } }],
           };
         },
@@ -45,6 +52,54 @@ describe('OpenAiAdapter', () => {
     assert.equal(result.model, 'gpt-4o-mini');
     assert.deepEqual(result.data.topics, validPayload.topics);
     assert.deepEqual(result.data.searchQueries, validPayload.searchQueries);
+  });
+
+  it('omits temperature for gpt-5 models that only support the default', async () => {
+    const captured: Array<{ temperature?: number }> = [];
+    const adapter = new OpenAiAdapter({
+      client: clientReturning(JSON.stringify(validPayload), captured),
+      model: 'gpt-5-mini',
+    });
+
+    await adapter.generateStructured({
+      systemPrompt: 'system',
+      userPrompt: 'user',
+      schema: collectionDiscoveryProfileSchema,
+    });
+
+    assert.equal(captured[0]?.temperature, undefined);
+  });
+
+  it('sends a low temperature for models that support it', async () => {
+    const captured: Array<{ temperature?: number }> = [];
+    const adapter = new OpenAiAdapter({
+      client: clientReturning(JSON.stringify(validPayload), captured),
+      model: 'gpt-4o-mini',
+    });
+
+    await adapter.generateStructured({
+      systemPrompt: 'system',
+      userPrompt: 'user',
+      schema: collectionDiscoveryProfileSchema,
+    });
+
+    assert.equal(captured[0]?.temperature, 0.2);
+  });
+
+  it('adds a JSON instruction when the prompt does not mention json', async () => {
+    const captured: Array<{ systemContent?: string }> = [];
+    const adapter = new OpenAiAdapter({
+      client: clientReturning(JSON.stringify(validPayload), captured),
+      model: 'gpt-5-mini',
+    });
+
+    await adapter.generateStructured({
+      systemPrompt: 'You are a strategist.',
+      userPrompt: 'user',
+      schema: collectionDiscoveryProfileSchema,
+    });
+
+    assert.match(captured[0]?.systemContent ?? '', /\bjson\b/i);
   });
 
   it('rejects invalid JSON and invalid schemas', async () => {

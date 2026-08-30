@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 export const COLLECTION_DISCOVERY_PROFILE_PROMPT_VERSION =
-  'collection-discovery-profile.v1';
+  'collection-discovery-profile.v2';
 
 export const COLLECTION_DISCOVERY_PROFILE_SYSTEM_PROMPT = readPrompt(
   'collection-discovery-profile.system.txt',

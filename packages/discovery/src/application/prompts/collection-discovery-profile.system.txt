@@ -86,3 +86,14 @@ Aim for approximately:
 * 3–8 negative signals
 
 Use fewer when the Collection is narrow. Do not add filler simply to reach these ranges.
+
+## Output
+
+Reply with a JSON object only. Do not wrap it in markdown.
+
+Use these keys:
+
+* topics
+* searchQueries
+* positiveSignals
+* negativeSignals

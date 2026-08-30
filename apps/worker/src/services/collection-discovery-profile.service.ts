@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { randomUUID } from 'crypto';
 
 import {
   CollectionDiscoveryProfileService,
@@ -7,6 +8,11 @@ import {
   PrismaCollectionDiscoveryProfileRepository,
 } from '../../../../packages/discovery/src';
 import type { PersistedCollectionDiscoveryProfile } from '../../../../packages/discovery/src';
+import {
+  GatherQuery,
+  GatherQuerySaveStrategy,
+  PrismaGatherQueryRepository,
+} from '../../../../packages/persistence/src';
 
 export async function runGenerateCollectionDiscoveryProfile(
   db: PrismaClient,
@@ -25,9 +31,26 @@ export async function runGenerateCollectionDiscoveryProfile(
     new PrismaCollectionDiscoveryProfileRepository(db),
   );
 
-  return profileService.generateAndPersist({
+  const persisted = await profileService.generateAndPersist({
     collectionId: collection.id,
     collectionDescription: collection.description,
     spaceDescription: collection.space.description,
   });
+
+  const gatherQueryRepo = new PrismaGatherQueryRepository(db);
+  await gatherQueryRepo.save(
+    {
+      collectionId: collection.id,
+      items: persisted.profile.searchQueries.map((query) =>
+        GatherQuery.create({
+          id: randomUUID(),
+          collectionId: collection.id,
+          query,
+        }),
+      ),
+    },
+    GatherQuerySaveStrategy.Replace,
+  );
+
+  return persisted;
 }

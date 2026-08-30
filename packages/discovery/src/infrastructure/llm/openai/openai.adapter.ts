@@ -8,6 +8,21 @@ import type {
 } from '../../../application/ports/llm-provider.port';
 
 const DEFAULT_MODEL = 'gpt-4o-mini';
+const DEFAULT_TEMPERATURE = 0.2;
+const JSON_OBJECT_INSTRUCTION = 'Respond with a JSON object.';
+
+function withJsonObjectInstruction(systemPrompt: string): string {
+  if (/\bjson\b/i.test(systemPrompt)) {
+    return systemPrompt;
+  }
+  return `${systemPrompt}\n\n${JSON_OBJECT_INSTRUCTION}`;
+}
+
+/** GPT-5 and o-series models only accept the default temperature (1). */
+function modelSupportsCustomTemperature(model: string): boolean {
+  const id = model.toLowerCase();
+  return !id.startsWith('gpt-5') && !/^o[1-9]/.test(id);
+}
 
 export type OpenAiChatClient = {
   chat: {
@@ -63,10 +78,12 @@ export class OpenAiAdapter implements LlmProvider {
     try {
       completion = await this.client.chat.completions.create({
         model: this.model,
-        temperature: 0.2,
+        ...(modelSupportsCustomTemperature(this.model)
+          ? { temperature: DEFAULT_TEMPERATURE }
+          : {}),
         response_format: { type: 'json_object' },
         messages: [
-          { role: 'system', content: input.systemPrompt },
+          { role: 'system', content: withJsonObjectInstruction(input.systemPrompt) },
           { role: 'user', content: input.userPrompt },
         ],
       });

@@ -8,9 +8,10 @@ import { createApp } from './http/create-app';
 config();
 
 const port = Number(process.env.PORT ?? 3000);
+const host = process.env.HOST ?? '0.0.0.0';
 const app = createApp();
-const server = app.listen(port, () => {
-  console.log(`Spaces API listening on http://localhost:${port}/api`);
+const server = app.listen(port, host, () => {
+  console.log(`Spaces API listening on http://${host}:${port}/api`);
 });
 
 async function shutdown(signal: string): Promise<void> {
