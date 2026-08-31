@@ -1,8 +1,14 @@
 import { PrismaClient } from '@prisma/client';
 import { ZodError } from 'zod';
 
-import { CollectionNotFoundError } from '../../../../packages/discovery/src';
-import { gatherCollectionPayloadSchema } from '../../../../packages/types/src';
+import {
+  CollectionNotFoundError,
+  ContentSearchError,
+} from '../../../../packages/discovery/src';
+import {
+  gatherCollectionPayloadSchema,
+  gatherJobFailureMessage,
+} from '../../../../packages/types/src';
 import { UnretryableJobError } from '../jobs/job-types';
 import { runGatherCollection } from '../services/gather-collection.service';
 
@@ -24,6 +30,15 @@ export function createGatherCollectionHandler(db: PrismaClient) {
       await runGatherCollection(db, collectionId);
     } catch (error) {
       if (error instanceof CollectionNotFoundError) {
+        throw new UnretryableJobError(error.message);
+      }
+      if (error instanceof ContentSearchError && error.kind === 'rate_limit') {
+        throw new UnretryableJobError(gatherJobFailureMessage('rate_limit'));
+      }
+      if (
+        error instanceof ContentSearchError &&
+        error.kind === 'configuration'
+      ) {
         throw new UnretryableJobError(error.message);
       }
       throw error;

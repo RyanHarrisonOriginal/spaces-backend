@@ -1,3 +1,20 @@
+export interface ContentItemReadModel {
+  id: string;
+  collectionId: string;
+  provider: 'youtube';
+  externalId: string;
+  type: 'video' | 'article' | 'image';
+  title: string;
+  description: string;
+  url: string;
+  thumbnailUrl: string | null;
+  authorName: string | null;
+  publishedAt: Date | null;
+  discoveredByQueries: string[];
+  sortOrder: number;
+  createdAt: Date;
+}
+
 export interface CollectionReadModel {
   id: string;
   spaceId: string;
@@ -7,6 +24,7 @@ export interface CollectionReadModel {
   createdAt: Date;
   updatedAt: Date;
   queries: string[];
+  content: ContentItemReadModel[];
 }
 
 export interface SpaceTreeReadModel {

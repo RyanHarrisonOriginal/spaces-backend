@@ -25,3 +25,20 @@ export function requireUuidParam(name: string) {
     next();
   };
 }
+
+const JOB_ID_RE = /^[A-Za-z0-9_-]{1,64}$/;
+
+export function requireJobIdParam(name: string) {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    const value = routeParam(req, name);
+    if (!value || !JOB_ID_RE.test(value)) {
+      res.status(400).json({
+        statusCode: 400,
+        error: 'BadRequest',
+        message: `Invalid job id parameter: ${name}`,
+      });
+      return;
+    }
+    next();
+  };
+}

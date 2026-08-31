@@ -8,7 +8,9 @@ export {
   closeJobQueue,
   enqueueGatherCollection,
   enqueueGenerateCollectionDiscoveryProfile,
+  getGatherCollectionJob,
   getJobQueue,
 } from './enqueue';
+export type { GatherJobSnapshot } from './enqueue';
 export { migrateBullmqSchema } from './migrate';
 export { createPostgresBackend } from 'bullmq';

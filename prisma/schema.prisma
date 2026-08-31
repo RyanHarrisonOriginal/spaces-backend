@@ -23,6 +23,20 @@ enum CollectionDiscoveryProfileStatus {
   @@map("collection_discovery_profile_status")
 }
 
+enum ContentProvider {
+  youtube
+
+  @@map("content_provider")
+}
+
+enum ContentType {
+  video
+  article
+  image
+
+  @@map("content_type")
+}
+
 model User {
   id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   email       String   @unique
@@ -65,6 +79,7 @@ model Collection {
   space             Space                          @relation(fields: [spaceId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   gatherQueries     GatherQuery[]
   discoveryProfiles CollectionDiscoveryProfile[]
+  contentItems      ContentItem[]
 
   @@index([spaceId], map: "idx_collections_space_id")
   @@map("collections")
@@ -97,4 +112,27 @@ model GatherQuery {
 
   @@index([collectionId], map: "idx_gather_queries_collection_id")
   @@map("gather_queries")
+}
+
+model ContentItem {
+  id                  String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  collectionId        String          @map("collection_id") @db.Uuid
+  provider            ContentProvider
+  externalId          String          @map("external_id")
+  type                ContentType     @default(video)
+  title               String
+  description         String          @default("")
+  url                 String
+  thumbnailUrl        String?         @map("thumbnail_url")
+  authorName          String?         @map("author_name")
+  publishedAt         DateTime?       @map("published_at") @db.Timestamptz(6)
+  discoveredByQueries String[]        @default([]) @map("discovered_by_queries")
+  sortOrder           Int             @default(0) @map("sort_order")
+  createdAt           DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  collection          Collection      @relation(fields: [collectionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([collectionId, provider, externalId], map: "uq_content_items_collection_provider_external")
+  @@index([collectionId], map: "idx_content_items_collection_id")
+  @@map("content_items")
 }

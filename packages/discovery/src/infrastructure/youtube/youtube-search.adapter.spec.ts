@@ -116,7 +116,13 @@ describe('YoutubeSearchAdapter', () => {
       apiKey: 'super-secret-key',
       fetch: fetchReturning(
         403,
-        { error: { code: 403, message: 'quota exceeded' } },
+        {
+          error: {
+            code: 403,
+            message: 'quota exceeded',
+            errors: [{ reason: 'quotaExceeded' }],
+          },
+        },
         captured,
       ),
     });
@@ -125,10 +131,78 @@ describe('YoutubeSearchAdapter', () => {
       () => adapter.search(query),
       (error: unknown) =>
         error instanceof ContentSearchError &&
-        error.message === 'YouTube search is temporarily unavailable' &&
+        error.message ===
+          'YouTube search failed (HTTP 403): reason=quotaExceeded: quota exceeded' &&
+        error.details.status === 403 &&
+        error.details.reason === 'quotaExceeded' &&
+        error.kind === 'rate_limit' &&
         !error.message.includes('super-secret-key'),
     );
     assert.match(captured[0]?.url ?? '', /key=super-secret-key/);
+  });
+
+  it('includes HTTP status and reason for non-403 YouTube failures', async () => {
+    const adapter = new YoutubeSearchAdapter({
+      apiKey: 'test-key',
+      fetch: fetchReturning(500, {
+        error: {
+          code: 500,
+          message: 'Backend Error',
+          errors: [{ reason: 'backendError' }],
+        },
+      }),
+    });
+
+    await assert.rejects(
+      () => adapter.search(query),
+      (error: unknown) =>
+        error instanceof ContentSearchError &&
+        error.message ===
+          'YouTube search failed (HTTP 500): reason=backendError: Backend Error' &&
+        error.details.status === 500 &&
+        error.details.reason === 'backendError' &&
+        error.kind === 'provider',
+    );
+  });
+
+  it('still reports HTTP status when YouTube omits an error reason', async () => {
+    const adapter = new YoutubeSearchAdapter({
+      apiKey: 'test-key',
+      fetch: fetchReturning(429, { error: { code: 429 } }),
+    });
+
+    await assert.rejects(
+      () => adapter.search(query),
+      (error: unknown) =>
+        error instanceof ContentSearchError &&
+        error.message === 'YouTube search failed (HTTP 429)' &&
+        error.details.status === 429 &&
+        error.kind === 'rate_limit' &&
+        error.details.reason === undefined,
+    );
+  });
+
+  it('classifies YouTube search quota exceeded as a rate limit', async () => {
+    const adapter = new YoutubeSearchAdapter({
+      apiKey: 'test-key',
+      fetch: fetchReturning(429, {
+        error: {
+          code: 429,
+          message:
+            "Quota exceeded for quota metric 'Search Queries' and limit 'Search Queries per day'",
+          errors: [{ reason: 'rateLimitExceeded' }],
+        },
+      }),
+    });
+
+    await assert.rejects(
+      () => adapter.search(query),
+      (error: unknown) =>
+        error instanceof ContentSearchError &&
+        error.kind === 'rate_limit' &&
+        error.details.status === 429 &&
+        error.details.reason === 'rateLimitExceeded',
+    );
   });
 
   it('treats malformed JSON as an unexpected response', async () => {

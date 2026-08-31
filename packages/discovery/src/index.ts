@@ -5,6 +5,8 @@ export {
   LlmGenerationError,
 } from './application/errors/llm-generation.error';
 export { ContentSearchError } from './application/errors/content-search.error';
+export type { ContentSearchErrorKind } from './application/errors/content-search.error';
+export { isYoutubeRateLimit } from './application/errors/content-search.error';
 export type { LlmProvider } from './application/ports/llm-provider.port';
 export {
   CONTENT_SEARCH_PROVIDERS,
@@ -14,6 +16,26 @@ export type {
   ContentSearchProviderName,
   ContentSearchResult,
 } from './application/ports/content-search-provider.port';
+export type {
+  ContentRelevanceEvaluator,
+  EvaluateRelevanceInput,
+  EvaluateRelevanceResult,
+  RelevanceCandidate,
+} from './application/ports/content-relevance-evaluator.port';
+export { ContentSearchService } from './application/services/content-search.service';
+export type { ContentSearchSummary } from './application/services/content-search.service';
+export { ContentRelevanceEvaluationService } from './application/services/content-relevance-evaluation.service';
+export {
+  isProvenRelevant,
+  selectAcceptedCandidates,
+} from './application/services/select-accepted-candidates';
+export { relevanceFilterConfigFromEnv } from './application/config/relevance-filter.config';
+export type { RelevanceFilterConfig } from './application/config/relevance-filter.config';
+export {
+  contentRelevanceEvaluationSchema,
+  contentRelevanceEvaluationBatchSchema,
+} from './domain/content-relevance-evaluation';
+export type { ContentRelevanceEvaluation } from './domain/content-relevance-evaluation';
 export { OpenAiAdapter } from './infrastructure/llm/openai/openai.adapter';
 export { YoutubeSearchAdapter } from './infrastructure/youtube/youtube-search.adapter';
 export { PrismaCollectionDiscoveryProfileRepository } from './infrastructure/persistence/prisma-collection-discovery-profile.repository';

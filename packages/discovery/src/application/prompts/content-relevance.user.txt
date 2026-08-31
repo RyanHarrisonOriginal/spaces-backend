@@ -1,0 +1,14 @@
+SPACE NAME
+{{spaceName}}
+
+SPACE DESCRIPTION
+{{spaceDescription}}
+
+COLLECTION NAME
+{{collectionName}}
+
+COLLECTION DESCRIPTION
+{{collectionDescription}}
+
+CANDIDATES
+{{candidates}}

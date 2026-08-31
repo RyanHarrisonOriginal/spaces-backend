@@ -34,6 +34,11 @@ export const CollectionRoutes = {
   gather: {
     method: 'post',
     path: '/collections/:collectionId/gather',
+    status: 202,
+  },
+  getGatherJob: {
+    method: 'get',
+    path: '/collections/:collectionId/gather/:jobId',
     status: 200,
   },
 } as const satisfies Record<string, HttpRoute>;

@@ -65,3 +65,31 @@ export async function enqueueGatherCollection(
 ): Promise<{ id: string }> {
   return addCollectionJob(JOB_TYPES.GATHER_COLLECTION, collectionId);
 }
+
+export type GatherJobSnapshot = {
+  id: string;
+  collectionId: string;
+  state: string;
+  failedReason: string | null;
+};
+
+export async function getGatherCollectionJob(
+  jobId: string,
+): Promise<GatherJobSnapshot | null> {
+  const job = await getJobQueue().getJob(jobId);
+  if (!job) {
+    return null;
+  }
+
+  const data = job.data as { collectionId?: unknown };
+  const collectionId =
+    typeof data?.collectionId === 'string' ? data.collectionId : '';
+  const state = await job.getState();
+
+  return {
+    id: String(job.id),
+    collectionId,
+    state,
+    failedReason: job.failedReason ?? null,
+  };
+}

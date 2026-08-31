@@ -14,6 +14,9 @@ const spaceTreeInclude = {
       gatherQueries: {
         orderBy: { createdAt: 'asc' as const },
       },
+      contentItems: {
+        orderBy: { sortOrder: 'asc' as const },
+      },
     },
   },
 } satisfies Prisma.SpaceInclude;
@@ -62,6 +65,22 @@ export class GetSpaceTreeHandler {
         createdAt: collection.createdAt,
         updatedAt: collection.updatedAt,
         queries: collection.gatherQueries.map((q) => q.query),
+        content: collection.contentItems.map((item) => ({
+          id: item.id,
+          collectionId: item.collectionId,
+          provider: item.provider,
+          externalId: item.externalId,
+          type: item.type,
+          title: item.title,
+          description: item.description,
+          url: item.url,
+          thumbnailUrl: item.thumbnailUrl,
+          authorName: item.authorName,
+          publishedAt: item.publishedAt,
+          discoveredByQueries: item.discoveredByQueries,
+          sortOrder: item.sortOrder,
+          createdAt: item.createdAt,
+        })),
       })),
     };
   }

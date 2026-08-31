@@ -4,13 +4,14 @@ import type { AppContainer } from '../../../http/container';
 import { asyncHandler } from '../../../http/async-handler';
 import { mount } from '../../../http/mount';
 import { requireUserId } from '../../../http/require-user-id';
-import { requireUuidParam, routeParam } from '../../../http/require-uuid-param';
+import { requireJobIdParam, requireUuidParam, routeParam } from '../../../http/require-uuid-param';
 import { send } from '../../../http/send';
 import { validateBody } from '../../../http/validate-body';
 import { CreateCollectionCommand } from '../application/commands/create-collection.command';
 import { DeleteCollectionCommand } from '../application/commands/delete-collection.command';
 import { EnqueueCollectionDiscoveryProfileCommand } from '../application/commands/enqueue-collection-discovery-profile.command';
 import { GatherCollectionCommand } from '../application/commands/gather-collection.command';
+import { GetGatherJobQuery } from '../application/queries/get-gather-job.query';
 import { ReplaceGatherQueriesCommand } from '../application/commands/replace-gather-queries.command';
 import { UpdateCollectionCommand } from '../application/commands/update-collection.command';
 import { CreateCollectionDto } from '../application/dto/create-collection.dto';
@@ -139,6 +140,24 @@ export function createCollectionsRouter(container: AppContainer): Router {
         ),
       );
       send(res, CollectionRoutes.gather.status, result);
+    }),
+  );
+
+  mount(
+    router,
+    CollectionRoutes.getGatherJob,
+    requireUserId,
+    requireUuidParam('collectionId'),
+    requireJobIdParam('jobId'),
+    asyncHandler(async (req, res) => {
+      const result = await container.getGatherJob.execute(
+        new GetGatherJobQuery(
+          req.userId!,
+          routeParam(req, 'collectionId'),
+          routeParam(req, 'jobId'),
+        ),
+      );
+      send(res, CollectionRoutes.getGatherJob.status, result);
     }),
   );
 

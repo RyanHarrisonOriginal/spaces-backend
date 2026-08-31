@@ -1,6 +1,9 @@
 import { ZodError } from 'zod';
 
-import { ContentSearchError } from '../../application/errors/content-search.error';
+import {
+  ContentSearchError,
+  isYoutubeRateLimit,
+} from '../../application/errors/content-search.error';
 import type {
   ContentSearchProvider,
   ContentSearchResult,
@@ -12,7 +15,7 @@ const DEFAULT_MAX_RESULTS = 8;
 
 export type YoutubeFetch = (
   input: string | URL,
-  init?: { method?: string },
+  init?: { method?: string; signal?: AbortSignal },
 ) => Promise<{
   ok: boolean;
   status: number;
@@ -20,7 +23,7 @@ export type YoutubeFetch = (
 }>;
 
 export class YoutubeSearchAdapter implements ContentSearchProvider {
-  private readonly apiKey: string;
+  private apiKey: string;
   private readonly maxResults: number;
   private readonly fetchFn: YoutubeFetch;
   private readonly mapper: YoutubeSearchMapper;
@@ -44,19 +47,31 @@ export class YoutubeSearchAdapter implements ContentSearchProvider {
   }
 
   async search(query: string): Promise<ContentSearchResult[]> {
-    if (!this.apiKey.trim()) {
+    const apiKey = this.resolveApiKey();
+    if (!apiKey) {
       throw new ContentSearchError(
         'YouTube API key is not configured',
         'configuration',
       );
     }
 
-    const url = this.buildSearchUrl(query);
+    const url = this.buildSearchUrl(query, apiKey);
     let response: Awaited<ReturnType<YoutubeFetch>>;
     try {
-      response = await this.fetchFn(url);
-    } catch {
-      throw new ContentSearchError('YouTube search request failed', 'provider');
+      response = await this.fetchFn(url, {
+        signal: AbortSignal.timeout(12_000),
+      });
+    } catch (error) {
+      const timedOut =
+        error instanceof Error &&
+        (error.name === 'TimeoutError' || error.name === 'AbortError');
+      throw new ContentSearchError(
+        timedOut
+          ? 'YouTube search request timed out'
+          : 'YouTube search request failed',
+        'provider',
+        { cause: timedOut ? 'timeout' : 'network' },
+      );
     }
 
     let body: unknown;
@@ -67,13 +82,16 @@ export class YoutubeSearchAdapter implements ContentSearchProvider {
       throw new ContentSearchError(
         'YouTube returned an unexpected response',
         'provider',
+        { status: response.status },
       );
     }
 
     if (!response.ok) {
+      const details = detailsForYoutubeFailure(response.status, body);
       throw new ContentSearchError(
-        messageForYoutubeStatus(response.status),
-        'provider',
+        messageForYoutubeFailure(response.status, body),
+        isYoutubeRateLimit(details) ? 'rate_limit' : 'provider',
+        details,
       );
     }
 
@@ -90,24 +108,86 @@ export class YoutubeSearchAdapter implements ContentSearchProvider {
     }
   }
 
-  private buildSearchUrl(query: string): URL {
+  private resolveApiKey(): string {
+    const key = (this.apiKey || process.env.YOUTUBE_API_KEY || '').trim();
+    if (key) {
+      this.apiKey = key;
+    }
+    return key;
+  }
+
+  private buildSearchUrl(query: string, apiKey: string): URL {
     const url = new URL(YOUTUBE_SEARCH_URL);
     url.searchParams.set('part', 'snippet');
     url.searchParams.set('type', 'video');
     url.searchParams.set('q', query);
     url.searchParams.set('order', 'relevance');
     url.searchParams.set('maxResults', String(this.maxResults));
-    url.searchParams.set('key', this.apiKey);
+    url.searchParams.set('key', apiKey);
     return url;
   }
 }
 
-function messageForYoutubeStatus(status: number): string {
-  if (status === 401 || status === 403) {
-    return 'YouTube search is temporarily unavailable';
+function messageForYoutubeFailure(status: number, body: unknown): string {
+  const { reason, message } = youtubeErrorFromBody(body);
+  const parts = [`YouTube search failed (HTTP ${status})`];
+  if (reason) {
+    parts.push(`reason=${reason}`);
   }
-  if (status === 400) {
-    return 'YouTube rejected the search query';
+  if (message) {
+    parts.push(message);
   }
-  return 'YouTube search failed';
+  return parts.join(': ');
+}
+
+function detailsForYoutubeFailure(
+  status: number,
+  body: unknown,
+): Record<string, unknown> {
+  const { reason, message } = youtubeErrorFromBody(body);
+  return {
+    status,
+    ...(reason ? { reason } : {}),
+    ...(message ? { youtubeMessage: message } : {}),
+  };
+}
+
+function youtubeErrorFromBody(body: unknown): {
+  reason?: string;
+  message?: string;
+} {
+  if (!body || typeof body !== 'object') {
+    return {};
+  }
+
+  const error = (body as { error?: unknown }).error;
+  if (!error || typeof error !== 'object') {
+    return {};
+  }
+
+  const record = error as {
+    message?: unknown;
+    errors?: Array<{ reason?: unknown }>;
+  };
+  const reason = record.errors?.find(
+    (item) => typeof item?.reason === 'string' && item.reason.trim(),
+  )?.reason;
+  const message =
+    typeof record.message === 'string' ? sanitizeYoutubeMessage(record.message) : '';
+
+  return {
+    ...(typeof reason === 'string' ? { reason: reason.trim() } : {}),
+    ...(message ? { message } : {}),
+  };
+}
+
+function sanitizeYoutubeMessage(value: string): string {
+  const stripped = value
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!stripped || /key=/i.test(stripped)) {
+    return '';
+  }
+  return stripped.slice(0, 200);
 }

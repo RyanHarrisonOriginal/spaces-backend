@@ -6,16 +6,12 @@ import { CreateCollectionHandler } from '../modules/collections/application/comm
 import { DeleteCollectionHandler } from '../modules/collections/application/commands/handlers/delete-collection.handler';
 import { EnqueueCollectionDiscoveryProfileHandler } from '../modules/collections/application/commands/handlers/enqueue-collection-discovery-profile.handler';
 import { GatherCollectionHandler } from '../modules/collections/application/commands/handlers/gather-collection.handler';
+import { GetGatherJobHandler } from '../modules/collections/application/queries/handlers/get-gather-job.handler';
 import { ReplaceGatherQueriesHandler } from '../modules/collections/application/commands/handlers/replace-gather-queries.handler';
 import { UpdateCollectionHandler } from '../modules/collections/application/commands/handlers/update-collection.handler';
 import { ListGatherQueriesHandler } from '../modules/collections/application/queries/handlers/list-gather-queries.handler';
 import { PrismaCollectionRepository } from '../modules/collections/infrastructure/prisma-collection.repository';
-import {
-  PrismaCollectionDiscoveryProfileRepository,
-  YoutubeSearchAdapter,
-} from '../../packages/discovery/src';
 import { PrismaGatherQueryRepository } from '../../packages/persistence/src';
-import { GatherCollectionService } from '../modules/collections/application/services/gather-collection.service';
 import { CreateSpaceHandler } from '../modules/spaces/application/commands/handlers/create-space.handler';
 import { DeleteSpaceHandler } from '../modules/spaces/application/commands/handlers/delete-space.handler';
 import { UpdateSpaceHandler } from '../modules/spaces/application/commands/handlers/update-space.handler';
@@ -35,15 +31,9 @@ export function createContainer(prisma: PrismaClient = getPrisma()) {
   const spaceRepo = new PrismaSpaceRepository(prisma);
   const collectionRepo = new PrismaCollectionRepository(prisma);
   const gatherQueryRepo = new PrismaGatherQueryRepository(prisma);
-  const profileRepo = new PrismaCollectionDiscoveryProfileRepository(prisma);
   const collectionAccessService = new CollectionAccessService(
     collectionRepo,
     spaceRepo,
-  );
-  const gatherCollectionService = new GatherCollectionService(
-    gatherQueryRepo,
-    profileRepo,
-    YoutubeSearchAdapter.fromEnv(),
   );
 
   return {
@@ -71,9 +61,7 @@ export function createContainer(prisma: PrismaClient = getPrisma()) {
       gatherQueryRepo,
       collectionAccessService,
     ),
-    gatherCollection: new GatherCollectionHandler(
-      collectionAccessService,
-      gatherCollectionService,
-    ),
+    gatherCollection: new GatherCollectionHandler(collectionAccessService),
+    getGatherJob: new GetGatherJobHandler(collectionAccessService),
   };
 }
