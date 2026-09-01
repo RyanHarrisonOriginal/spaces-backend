@@ -1,6 +1,9 @@
 import { Collection as PrismaCollection } from '@prisma/client';
 
-import { Collection } from '../domain/collection.entity';
+import {
+  Collection,
+  normalizeBraveContentTypes,
+} from '../domain/collection.entity';
 
 export class PrismaCollectionMapper {
   toDomain(row: PrismaCollection): Collection {
@@ -10,7 +13,7 @@ export class PrismaCollectionMapper {
       name: row.name,
       description: row.description,
       gatherSource: row.gatherSource,
-      braveContentTypes: row.braveContentTypes,
+      braveContentTypes: normalizeBraveContentTypes(row.braveContentTypes),
       sortOrder: row.sortOrder,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,

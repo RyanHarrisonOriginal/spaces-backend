@@ -1,6 +1,7 @@
 import { Prisma, PrismaClient } from '@prisma/client';
 
 import { NotFoundException } from '../../../../../shared/domain/exceptions';
+import { normalizeBraveContentTypes } from '../../../../collections/domain/collection.entity';
 import {
   SpaceRepository,
 } from '../../../domain/space.repository';
@@ -62,7 +63,9 @@ export class GetSpaceTreeHandler {
         name: collection.name,
         description: collection.description,
         gatherSource: collection.gatherSource,
-        braveContentTypes: collection.braveContentTypes,
+        braveContentTypes: normalizeBraveContentTypes(
+          collection.braveContentTypes,
+        ),
         sortOrder: collection.sortOrder,
         createdAt: collection.createdAt,
         updatedAt: collection.updatedAt,
