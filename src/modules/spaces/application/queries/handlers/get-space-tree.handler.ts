@@ -61,6 +61,8 @@ export class GetSpaceTreeHandler {
         spaceId: collection.spaceId,
         name: collection.name,
         description: collection.description,
+        gatherSource: collection.gatherSource,
+        braveContentTypes: collection.braveContentTypes,
         sortOrder: collection.sortOrder,
         createdAt: collection.createdAt,
         updatedAt: collection.updatedAt,

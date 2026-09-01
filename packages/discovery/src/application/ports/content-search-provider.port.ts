@@ -1,5 +1,6 @@
 export const CONTENT_SEARCH_PROVIDERS = {
   youtube: 'youtube',
+  brave: 'brave',
 } as const;
 
 export type ContentSearchProviderName =
@@ -14,6 +15,7 @@ export type ContentSearchResult = {
   thumbnailUrl?: string;
   authorName?: string;
   publishedAt?: string;
+  contentType?: 'video' | 'article' | 'image';
   discoveredByQueries: string[];
 };
 

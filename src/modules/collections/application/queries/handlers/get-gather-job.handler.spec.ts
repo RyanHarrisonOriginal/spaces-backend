@@ -47,7 +47,7 @@ describe('GetGatherJobHandler', () => {
       id: '26',
       collectionId: 'collection-1',
       state: 'failed',
-      failedReason: 'YouTube search failed for all queries',
+      failedReason: 'Search failed for all queries',
     }));
 
     const result = await handler.execute(

@@ -5,6 +5,7 @@ export class UpdateCollectionCommand {
     public readonly patch: {
       name?: string;
       description?: string;
+      braveContentTypes?: Array<'web' | 'news' | 'video' | 'image'>;
       sortOrder?: number;
     },
   ) {}

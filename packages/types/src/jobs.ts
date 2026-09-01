@@ -51,5 +51,5 @@ export function gatherJobFailureCode(
 }
 
 export function gatherJobFailureMessage(code: GatherJobFailureCode): string {
-  return `${GATHER_JOB_FAILURE.RATE_LIMIT}: YouTube daily search quota exceeded`;
+  return `${GATHER_JOB_FAILURE.RATE_LIMIT}: Brave search rate limit exceeded`;
 }

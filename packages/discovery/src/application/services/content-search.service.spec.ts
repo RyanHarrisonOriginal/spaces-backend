@@ -14,11 +14,12 @@ function result(
   title = externalId,
 ): ContentSearchResult {
   return {
-    provider: 'youtube',
+    provider: 'brave',
     externalId,
     title,
     description: `${title} description`,
-    url: `https://www.youtube.com/watch?v=${externalId}`,
+    url: `https://example.com/${externalId}`,
+    contentType: 'article',
     discoveredByQueries: [query],
   };
 }
@@ -110,20 +111,17 @@ describe('ContentSearchService', () => {
     ).searchQueries(['lead teep']);
 
     assert.equal(gathered.length, 2);
-    assert.equal(gathered[0]?.provider, 'youtube');
-    assert.equal(
-      gathered[0]?.url,
-      'https://www.youtube.com/watch?v=abc123',
-    );
+    assert.equal(gathered[0]?.provider, 'brave');
+    assert.equal(gathered[0]?.url, 'https://example.com/abc123');
   });
 
-  it('logs HTTP status and reason from a failed YouTube query', async () => {
+  it('logs HTTP status and reason from a failed search query', async () => {
     const warnings: Array<Record<string, unknown>> = [];
     await new ContentSearchService(
       providerFromMap({
         'lead teep': [result('a', 'lead teep')],
         broken: new ContentSearchError(
-          'YouTube search failed (HTTP 500): reason=backendError',
+          'Brave search failed (HTTP 500): reason=backendError',
           'provider',
           { status: 500, reason: 'backendError' },
         ),
@@ -146,7 +144,7 @@ describe('ContentSearchService', () => {
     const gathered = await new ContentSearchService(
       providerFromMap({
         'lead teep': [result('a', 'lead teep')],
-        broken: new ContentSearchError('YouTube search failed', 'provider'),
+        broken: new ContentSearchError('Search failed', 'provider'),
         'jab teep': [result('b', 'jab teep')],
       }),
     ).searchQueries(['lead teep', 'broken', 'jab teep']);
@@ -162,20 +160,20 @@ describe('ContentSearchService', () => {
       () =>
         new ContentSearchService(
           providerFromMap({
-            'lead teep': new ContentSearchError('YouTube search failed'),
-            'jab teep': new ContentSearchError('YouTube search failed'),
+            'lead teep': new ContentSearchError('Search failed'),
+            'jab teep': new ContentSearchError('Search failed'),
           }),
         ).searchQueries(['lead teep', 'jab teep']),
       (error: unknown) =>
         error instanceof ContentSearchError &&
-        error.message === 'YouTube search failed for all queries',
+        error.message === 'Search failed for all queries',
     );
   });
 
-  it('fails fast when the YouTube API key is missing', async () => {
+  it('fails fast when the search API key is missing', async () => {
     const search = providerFromMap({
       'lead teep': new ContentSearchError(
-        'YouTube API key is not configured',
+        'Brave Search API key is not configured',
         'configuration',
       ),
       'jab teep': [result('b', 'jab teep')],
@@ -193,12 +191,12 @@ describe('ContentSearchService', () => {
     assert.deepEqual(search.searched, ['lead teep']);
   });
 
-  it('fails fast when YouTube rate limit is exceeded', async () => {
+  it('fails fast when the search rate limit is exceeded', async () => {
     const search = providerFromMap({
       first: new ContentSearchError(
-        'YouTube search failed (HTTP 429)',
+        'Brave search failed (HTTP 429)',
         'rate_limit',
-        { status: 429, reason: 'rateLimitExceeded' },
+        { status: 429 },
       ),
       second: [result('b', 'second')],
     });

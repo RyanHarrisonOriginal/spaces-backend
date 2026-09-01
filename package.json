@@ -20,7 +20,7 @@
     "prisma:studio": "prisma studio",
     "bullmq:migrate": "tsx packages/queue/src/migrate.ts",
     "db:deploy": "prisma db push && npm run bullmq:migrate && tsx prisma/seed.ts",
-    "test": "tsx --test packages/discovery/src/application/services/collection-discovery-profile.service.spec.ts packages/discovery/src/application/services/content-search.service.spec.ts packages/discovery/src/application/services/content-relevance-evaluation.service.spec.ts packages/discovery/src/application/config/relevance-filter.config.spec.ts packages/discovery/src/infrastructure/llm/openai/openai.adapter.spec.ts packages/discovery/src/infrastructure/youtube/youtube-search.adapter.spec.ts apps/worker/src/services/gather-collection.service.spec.ts src/modules/collections/application/commands/handlers/gather-collection.handler.spec.ts src/modules/collections/application/queries/handlers/get-gather-job.handler.spec.ts"
+    "test": "tsx --test packages/discovery/src/application/services/collection-discovery-profile.service.spec.ts packages/discovery/src/application/services/content-search.service.spec.ts packages/discovery/src/application/services/content-relevance-evaluation.service.spec.ts packages/discovery/src/application/config/relevance-filter.config.spec.ts packages/discovery/src/infrastructure/llm/openai/openai.adapter.spec.ts packages/discovery/src/infrastructure/brave/brave-web-search.adapter.spec.ts packages/discovery/src/infrastructure/brave/brave-search.adapter.spec.ts apps/worker/src/services/gather-collection.service.spec.ts src/modules/collections/application/commands/handlers/gather-collection.handler.spec.ts src/modules/collections/application/queries/handlers/get-gather-job.handler.spec.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

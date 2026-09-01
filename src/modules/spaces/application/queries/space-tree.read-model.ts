@@ -1,7 +1,7 @@
 export interface ContentItemReadModel {
   id: string;
   collectionId: string;
-  provider: 'youtube';
+  provider: 'youtube' | 'brave';
   externalId: string;
   type: 'video' | 'article' | 'image';
   title: string;
@@ -20,6 +20,8 @@ export interface CollectionReadModel {
   spaceId: string;
   name: string;
   description: string;
+  gatherSource: 'youtube' | 'brave';
+  braveContentTypes: Array<'web' | 'news' | 'video' | 'image'>;
   sortOrder: number;
   createdAt: Date;
   updatedAt: Date;

@@ -6,8 +6,16 @@ export {
 } from './application/errors/llm-generation.error';
 export { ContentSearchError } from './application/errors/content-search.error';
 export type { ContentSearchErrorKind } from './application/errors/content-search.error';
-export { isYoutubeRateLimit } from './application/errors/content-search.error';
+export { isSearchRateLimit } from './application/errors/content-search.error';
 export type { LlmProvider } from './application/ports/llm-provider.port';
+export {
+  BRAVE_CONTENT_TYPES,
+  DEFAULT_BRAVE_CONTENT_TYPES,
+  isBraveContentType,
+  normalizeBraveContentTypes,
+} from './application/brave-content-types';
+export type { BraveContentType } from './application/brave-content-types';
+export { genericContentThumbnail } from './application/generic-content-thumbnail';
 export {
   CONTENT_SEARCH_PROVIDERS,
 } from './application/ports/content-search-provider.port';
@@ -37,7 +45,8 @@ export {
 } from './domain/content-relevance-evaluation';
 export type { ContentRelevanceEvaluation } from './domain/content-relevance-evaluation';
 export { OpenAiAdapter } from './infrastructure/llm/openai/openai.adapter';
-export { YoutubeSearchAdapter } from './infrastructure/youtube/youtube-search.adapter';
+export { BraveWebSearchAdapter } from './infrastructure/brave/brave-web-search.adapter';
+export { BraveSearchAdapter } from './infrastructure/brave/brave-search.adapter';
 export { PrismaCollectionDiscoveryProfileRepository } from './infrastructure/persistence/prisma-collection-discovery-profile.repository';
 export { CollectionDiscoveryProfileRepository } from './domain/collection-discovery-profile.repository';
 export { collectionDiscoveryProfileSchema } from './domain/collection-discovery-profile';

@@ -65,7 +65,7 @@ export class PrismaGatherQueryRepository extends GatherQueryRepository {
   private async getByCollectionId(collectionId: string): Promise<GatherQuery[]> {
     const rows = await this.prisma.gatherQuery.findMany({
       where: { collectionId },
-      orderBy: { createdAt: 'asc' },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
     });
     return rows.map((row) => this.gatherQueryMapper.toDomain(row));
   }

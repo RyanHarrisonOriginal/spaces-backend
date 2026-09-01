@@ -10,7 +10,6 @@ import type {
   ContentRelevanceEvaluation,
   EvaluateRelevanceResult,
 } from '../../../../packages/discovery/src';
-import { ContentSearchService } from '../../../../packages/discovery/src';
 import { LlmGenerationError } from '../../../../packages/discovery/src';
 import {
   ContentItem,
@@ -28,11 +27,12 @@ function searchResult(
   title = externalId,
 ): ContentSearchResult {
   return {
-    provider: 'youtube',
+    provider: 'brave',
     externalId,
     title,
     description: `${title} description`,
-    url: `https://www.youtube.com/watch?v=${externalId}`,
+    url: `https://example.com/${externalId}`,
+    contentType: 'article',
     discoveredByQueries: [query],
   };
 }
@@ -67,7 +67,7 @@ class FakeContentItemRepository extends ContentItemRepository {
       return this.saved.find((item) => item.id === idOrQuery) ?? null;
     }
     return this.saved.filter(
-      (item) => item.collectionId === idOrQuery.collectionId,
+        (item) => item.collectionId === idOrQuery.collectionId,
     );
   }
 
@@ -135,6 +135,7 @@ const collection: GatherCollectionRecord = {
   id: 'col-1',
   name: 'Jab teep',
   description: 'Using the jab and teep together offensively.',
+  braveContentTypes: ['web'],
   space: {
     name: 'Muay Thai',
     description: 'Intermediate southpaw striking.',
@@ -148,16 +149,26 @@ const silentLogger = {
 };
 
 function createService(options: {
+  existingQueries?: string[];
   queries?: string[];
+  braveContentTypes?: GatherCollectionRecord['braveContentTypes'];
   search: ContentSearchProvider;
   evaluator: ContentRelevanceEvaluator;
   contentRepo: FakeContentItemRepository;
   minConfidence?: number;
+  capturedContentTypes?: BraveContentTypeCapture;
 }) {
   const generateCalls: string[] = [];
+  const record: GatherCollectionRecord = {
+    ...collection,
+    braveContentTypes: options.braveContentTypes ?? ['web'],
+  };
   const service = new GatherCollectionService({
     async loadCollection(id) {
-      return id === collection.id ? collection : null;
+      return id === record.id ? record : null;
+    },
+    async loadQueries() {
+      return options.existingQueries ?? [];
     },
     async generateProfile(id) {
       generateCalls.push(id);
@@ -167,7 +178,10 @@ function createService(options: {
         },
       };
     },
-    searchService: new ContentSearchService(options.search),
+    searchProvider: (contentTypes) => {
+      options.capturedContentTypes?.push(contentTypes);
+      return options.search;
+    },
     relevanceEvaluator: options.evaluator,
     contentRepo: options.contentRepo,
     async markCollectionUpdated() {},
@@ -180,19 +194,23 @@ function createService(options: {
   return { service, generateCalls };
 }
 
+type BraveContentTypeCapture = GatherCollectionRecord['braveContentTypes'][];
+
 describe('GatherCollectionService', () => {
-  it('runs YouTube search and LLM relevance only in the worker gather service', () => {
+  it('runs Brave search and LLM relevance only in the worker gather service', () => {
     const source = readFileSync(
       join(__dirname, 'gather-collection.service.ts'),
       'utf8',
     );
-    assert.match(source, /YoutubeSearchAdapter/);
+    assert.match(source, /BraveSearchAdapter/);
+    assert.doesNotMatch(source, /YoutubeSearchAdapter/);
+    assert.doesNotMatch(source, /ContentSearchStrategyRegistry/);
     assert.match(source, /ContentRelevanceEvaluationService/);
     assert.match(source, /selectAcceptedCandidates/);
     assert.match(source, /contentRepo\.save/);
   });
 
-  it('loads search queries, searches YouTube, then evaluates relevance', async () => {
+  it('uses persisted queries and does not generate a new profile', async () => {
     const search = providerFromMap({
       'lead teep': [searchResult('a', 'lead teep')],
       'jab teep': [searchResult('b', 'jab teep')],
@@ -206,6 +224,7 @@ describe('GatherCollectionService', () => {
     }));
     const contentRepo = new FakeContentItemRepository();
     const { service, generateCalls } = createService({
+      existingQueries: ['lead teep', 'jab teep'],
       search,
       evaluator,
       contentRepo,
@@ -213,14 +232,9 @@ describe('GatherCollectionService', () => {
 
     const stats = await service.execute(collection.id);
 
-    assert.deepEqual(generateCalls, [collection.id]);
+    assert.deepEqual(generateCalls, []);
     assert.deepEqual(search.searched, ['lead teep', 'jab teep']);
     assert.equal(evaluator.calls.length, 1);
-    assert.ok(
-      evaluator.calls[0] !== undefined &&
-        search.searched.length > 0,
-      'YouTube search runs before relevance evaluation',
-    );
     assert.deepEqual(evaluator.calls[0]?.candidateIds, ['a', 'b']);
     assert.equal(evaluator.calls[0]?.collectionName, 'Jab teep');
     assert.equal(
@@ -232,10 +246,118 @@ describe('GatherCollectionService', () => {
     assert.equal(stats.persistedCount, 2);
   });
 
-  it('deduplicates videos before relevance evaluation', async () => {
+  it('generates queries only when the collection has none', async () => {
     const search = providerFromMap({
-      'lead teep': [searchResult('abc123', 'lead teep', 'Lead Teep Setup')],
-      'jab teep': [searchResult('abc123', 'jab teep', 'Lead Teep Setup')],
+      'lead teep': [searchResult('a', 'lead teep')],
+      'jab teep': [searchResult('b', 'jab teep')],
+    });
+    const evaluator = new ScriptedEvaluator((ids) => ({
+      evaluations: evalMap(
+        ids.map((id) => [id, { relevant: true, confidence: 0.9 }]),
+      ),
+      evaluatedCount: ids.length,
+      failedEvaluationBatchCount: 0,
+    }));
+    const contentRepo = new FakeContentItemRepository();
+    const { service, generateCalls } = createService({
+      existingQueries: [],
+      queries: ['lead teep', 'jab teep'],
+      search,
+      evaluator,
+      contentRepo,
+    });
+
+    await service.execute(collection.id);
+
+    assert.deepEqual(generateCalls, [collection.id]);
+    assert.deepEqual(search.searched, ['lead teep', 'jab teep']);
+  });
+
+  it('passes the collection Brave content types into search', async () => {
+    const capturedContentTypes: BraveContentTypeCapture = [];
+    const search = providerFromMap({
+      'lead teep': [
+        {
+          provider: 'brave',
+          externalId: 'https://example.com/clip',
+          title: 'Teep clip',
+          description: 'A clip of the teep.',
+          url: 'https://example.com/clip',
+          contentType: 'video',
+          discoveredByQueries: ['lead teep'],
+        },
+      ],
+    });
+    const evaluator = new ScriptedEvaluator((ids) => ({
+      evaluations: evalMap(
+        ids.map((id) => [id, { relevant: true, confidence: 0.9 }]),
+      ),
+      evaluatedCount: ids.length,
+      failedEvaluationBatchCount: 0,
+    }));
+    const contentRepo = new FakeContentItemRepository();
+    const { service } = createService({
+      existingQueries: ['lead teep'],
+      braveContentTypes: ['video', 'image'],
+      search,
+      evaluator,
+      contentRepo,
+      capturedContentTypes,
+    });
+
+    const stats = await service.execute(collection.id);
+
+    assert.deepEqual(capturedContentTypes, [['video', 'image']]);
+    assert.equal(contentRepo.saved[0]?.provider, 'brave');
+    assert.equal(contentRepo.saved[0]?.type, 'video');
+    assert.equal(stats.persistedCount, 1);
+  });
+
+  it('runs every query and persists accepted results from all of them', async () => {
+    const search = providerFromMap({
+      'lead teep': [searchResult('noise', 'lead teep')],
+      'jab teep': [searchResult('keep', 'jab teep')],
+      'switch kick': [searchResult('later', 'switch kick')],
+    });
+    const evaluator = new ScriptedEvaluator((ids) => ({
+      evaluations: evalMap(
+        ids.map((id) => [
+          id,
+          { relevant: id !== 'noise', confidence: 0.9 },
+        ]),
+      ),
+      evaluatedCount: ids.length,
+      failedEvaluationBatchCount: 0,
+    }));
+    const contentRepo = new FakeContentItemRepository();
+    const { service } = createService({
+      existingQueries: ['lead teep', 'jab teep', 'switch kick'],
+      search,
+      evaluator,
+      contentRepo,
+    });
+
+    const stats = await service.execute(collection.id);
+
+    assert.deepEqual(search.searched, [
+      'lead teep',
+      'jab teep',
+      'switch kick',
+    ]);
+    assert.equal(stats.queryCount, 3);
+    assert.equal(stats.acceptedCount, 2);
+    assert.deepEqual(
+      contentRepo.saved.map((item) => item.externalId),
+      ['keep', 'later'],
+    );
+  });
+
+  it('deduplicates results before relevance evaluation', async () => {
+    const search = providerFromMap({
+      'lead teep': [
+        searchResult('abc123', 'lead teep', 'Lead Teep Setup'),
+        searchResult('abc123', 'lead teep', 'Lead Teep Setup'),
+      ],
     });
     const evaluator = new ScriptedEvaluator((ids) => ({
       evaluations: evalMap(
@@ -245,7 +367,12 @@ describe('GatherCollectionService', () => {
       failedEvaluationBatchCount: 0,
     }));
     const contentRepo = new FakeContentItemRepository();
-    const { service } = createService({ search, evaluator, contentRepo });
+    const { service } = createService({
+      existingQueries: ['lead teep'],
+      search,
+      evaluator,
+      contentRepo,
+    });
 
     const stats = await service.execute(collection.id);
 
@@ -255,13 +382,10 @@ describe('GatherCollectionService', () => {
     assert.equal(stats.duplicateSkippedCount, 1);
     assert.equal(contentRepo.saved.length, 1);
     assert.equal(contentRepo.saved[0]?.externalId, 'abc123');
-    assert.deepEqual(contentRepo.saved[0]?.discoveredByQueries, [
-      'lead teep',
-      'jab teep',
-    ]);
+    assert.deepEqual(contentRepo.saved[0]?.discoveredByQueries, ['lead teep']);
   });
 
-  it('persists only proven-relevant high-confidence videos', async () => {
+  it('persists only proven-relevant high-confidence results', async () => {
     const search = providerFromMap({
       'lead teep': [
         searchResult('keep', 'lead teep'),
@@ -281,7 +405,7 @@ describe('GatherCollectionService', () => {
     }));
     const contentRepo = new FakeContentItemRepository();
     const { service } = createService({
-      queries: ['lead teep'],
+      existingQueries: ['lead teep'],
       search,
       evaluator,
       contentRepo,
@@ -316,7 +440,7 @@ describe('GatherCollectionService', () => {
     }));
     const contentRepo = new FakeContentItemRepository();
     const { service } = createService({
-      queries: ['q'],
+      existingQueries: ['q'],
       search,
       evaluator,
       contentRepo,
@@ -350,7 +474,7 @@ describe('GatherCollectionService', () => {
     };
     const contentRepo = new FakeContentItemRepository();
     const { service } = createService({
-      queries: ['q'],
+      existingQueries: ['q'],
       search,
       evaluator,
       contentRepo,
@@ -375,7 +499,7 @@ describe('GatherCollectionService', () => {
     );
     const contentRepo = new FakeContentItemRepository();
     const { service } = createService({
-      queries: ['q'],
+      existingQueries: ['q'],
       search,
       evaluator,
       contentRepo,

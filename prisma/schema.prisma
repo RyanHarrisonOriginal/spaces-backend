@@ -25,8 +25,16 @@ enum CollectionDiscoveryProfileStatus {
 
 enum ContentProvider {
   youtube
+  brave
 
   @@map("content_provider")
+}
+
+enum GatherSource {
+  youtube
+  brave
+
+  @@map("gather_source")
 }
 
 enum ContentType {
@@ -73,6 +81,8 @@ model Collection {
   spaceId           String                         @map("space_id") @db.Uuid
   name              String
   description       String                         @default("")
+  gatherSource      GatherSource                   @default(youtube) @map("gather_source")
+  braveContentTypes String[]                       @default(["web"]) @map("brave_content_types")
   sortOrder         Int                            @default(0) @map("sort_order")
   createdAt         DateTime                       @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt         DateTime                       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)

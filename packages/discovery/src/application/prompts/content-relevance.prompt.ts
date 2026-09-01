@@ -3,7 +3,7 @@ import { join } from 'node:path';
 
 import type { RelevanceCandidate } from '../ports/content-relevance-evaluator.port';
 
-export const CONTENT_RELEVANCE_PROMPT_VERSION = 'content-relevance.v1';
+export const CONTENT_RELEVANCE_PROMPT_VERSION = 'content-relevance.v2';
 
 export const CONTENT_RELEVANCE_SYSTEM_PROMPT = readPrompt(
   'content-relevance.system.txt',

@@ -9,6 +9,8 @@ export class PrismaCollectionMapper {
       spaceId: row.spaceId,
       name: row.name,
       description: row.description,
+      gatherSource: row.gatherSource,
+      braveContentTypes: row.braveContentTypes,
       sortOrder: row.sortOrder,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
@@ -21,6 +23,8 @@ export class PrismaCollectionMapper {
       spaceId: entity.spaceId,
       name: entity.name,
       description: entity.description,
+      gatherSource: entity.gatherSource,
+      braveContentTypes: entity.braveContentTypes,
       sortOrder: entity.sortOrder,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
@@ -31,6 +35,8 @@ export class PrismaCollectionMapper {
     return {
       name: entity.name,
       description: entity.description,
+      gatherSource: entity.gatherSource,
+      braveContentTypes: entity.braveContentTypes,
       sortOrder: entity.sortOrder,
       updatedAt: entity.updatedAt,
     };

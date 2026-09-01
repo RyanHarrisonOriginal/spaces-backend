@@ -5,12 +5,17 @@ import {
   CollectionNotFoundError,
   ContentRelevanceEvaluationService,
   ContentSearchService,
+  BraveSearchAdapter,
   OpenAiAdapter,
-  YoutubeSearchAdapter,
+  genericContentThumbnail,
+  normalizeBraveContentTypes,
   relevanceFilterConfigFromEnv,
   selectAcceptedCandidates,
+  type BraveContentType,
   type ContentRelevanceEvaluator,
+  type ContentSearchProvider,
   type ContentSearchResult,
+  type ContentSearchSummary,
   type EvaluateRelevanceResult,
   type RelevanceFilterConfig,
 } from '../../../../packages/discovery/src';
@@ -18,6 +23,7 @@ import {
   ContentItem,
   ContentItemSaveStrategy,
   PrismaContentItemRepository,
+  PrismaGatherQueryRepository,
   type ContentItemRepository,
 } from '../../../../packages/persistence/src';
 import { logger } from '../logger';
@@ -27,6 +33,7 @@ export type GatherCollectionRecord = {
   id: string;
   name: string;
   description: string;
+  braveContentTypes: BraveContentType[];
   space: {
     name: string;
     description: string;
@@ -56,10 +63,13 @@ export type GatherCollectionDependencies = {
   loadCollection(
     collectionId: string,
   ): Promise<GatherCollectionRecord | null>;
+  loadQueries(collectionId: string): Promise<string[]>;
   generateProfile(
     collectionId: string,
   ): Promise<{ profile: { searchQueries: string[] } }>;
-  searchService: Pick<ContentSearchService, 'searchQueriesWithStats'>;
+  searchProvider: (
+    contentTypes: BraveContentType[],
+  ) => ContentSearchProvider;
   relevanceEvaluator: ContentRelevanceEvaluator;
   contentRepo: ContentItemRepository;
   markCollectionUpdated(collectionId: string): Promise<void>;
@@ -78,18 +88,23 @@ export class GatherCollectionService {
       throw new CollectionNotFoundError(collectionId);
     }
 
-    const persisted = await this.deps.generateProfile(collection.id);
-    const queries = uniqueQueries(persisted.profile.searchQueries);
-    this.deps.logger.info('collection gather queries loaded', {
+    const queries = await this.resolveQueries(collection.id);
+    this.deps.logger.info('collection gather queries selected', {
       collectionId,
       queryCount: queries.length,
+      braveContentTypes: collection.braveContentTypes,
     });
 
-    const searched = await this.deps.searchService.searchQueriesWithStats(
-      queries,
-      { collectionId },
+    const searchService = new ContentSearchService(
+      this.deps.searchProvider(collection.braveContentTypes),
+      this.deps.logger,
     );
-
+    const searched =
+      queries.length === 0
+        ? emptySearchSummary()
+        : await searchService.searchQueriesWithStats(queries, {
+            collectionId,
+          });
     const evaluations =
       searched.results.length === 0
         ? emptyEvaluationResult()
@@ -101,7 +116,6 @@ export class GatherCollectionService {
             },
             candidates: searched.results,
           });
-
     const accepted = selectAcceptedCandidates(
       searched.results,
       evaluations.evaluations,
@@ -138,6 +152,23 @@ export class GatherCollectionService {
     this.deps.logger.info('collection gather completed', stats);
     return stats;
   }
+
+  private async resolveQueries(collectionId: string): Promise<string[]> {
+    const existing = uniqueQueries(await this.deps.loadQueries(collectionId));
+    if (existing.length > 0) {
+      this.deps.logger.info('collection gather using existing queries', {
+        collectionId,
+        queryCount: existing.length,
+      });
+      return existing;
+    }
+
+    this.deps.logger.info('collection gather generating queries', {
+      collectionId,
+    });
+    const persisted = await this.deps.generateProfile(collectionId);
+    return uniqueQueries(persisted.profile.searchQueries);
+  }
 }
 
 export async function runGatherCollection(
@@ -145,6 +176,7 @@ export async function runGatherCollection(
   collectionId: string,
 ): Promise<GatherCollectionStats> {
   const config = relevanceFilterConfigFromEnv();
+  const gatherQueryRepo = new PrismaGatherQueryRepository(db);
   const service = new GatherCollectionService({
     async loadCollection(id) {
       const row = await db.collection.findUnique({
@@ -153,16 +185,25 @@ export async function runGatherCollection(
           id: true,
           name: true,
           description: true,
+          braveContentTypes: true,
           space: { select: { name: true, description: true } },
         },
       });
-      return row;
+      if (!row) {
+        return null;
+      }
+      return {
+        ...row,
+        braveContentTypes: normalizeBraveContentTypes(row.braveContentTypes),
+      };
+    },
+    async loadQueries(id) {
+      const rows = await gatherQueryRepo.get({ collectionId: id });
+      return rows.map((row) => row.query);
     },
     generateProfile: (id) => runGenerateCollectionDiscoveryProfile(db, id),
-    searchService: new ContentSearchService(
-      YoutubeSearchAdapter.fromEnv(),
-      logger,
-    ),
+    searchProvider: (contentTypes) =>
+      BraveSearchAdapter.fromEnv({ contentTypes }),
     relevanceEvaluator: new ContentRelevanceEvaluationService(
       OpenAiAdapter.fromEnv(),
       config,
@@ -190,6 +231,15 @@ function emptyEvaluationResult(): EvaluateRelevanceResult {
   };
 }
 
+function emptySearchSummary(): ContentSearchSummary {
+  return {
+    results: [],
+    rawResultCount: 0,
+    deduplicatedResultCount: 0,
+    duplicateSkippedCount: 0,
+  };
+}
+
 function toContentItem(
   collectionId: string,
   result: ContentSearchResult,
@@ -198,17 +248,19 @@ function toContentItem(
   const publishedAt = result.publishedAt
     ? new Date(result.publishedAt)
     : null;
+  const type = result.contentType ?? 'article';
 
   return ContentItem.create({
     id: randomUUID(),
     collectionId,
     provider: result.provider,
     externalId: result.externalId,
-    type: 'video',
+    type,
     title: result.title,
     description: result.description,
     url: result.url,
-    thumbnailUrl: result.thumbnailUrl,
+    thumbnailUrl:
+      result.thumbnailUrl?.trim() || genericContentThumbnail(type),
     authorName: result.authorName,
     publishedAt:
       publishedAt && !Number.isNaN(publishedAt.getTime()) ? publishedAt : null,

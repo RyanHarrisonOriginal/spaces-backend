@@ -32,14 +32,14 @@ describe('GatherCollectionHandler', () => {
     assert.deepEqual(result, { jobId: 'job-1' });
   });
 
-  it('does not import YouTube search, LLM evaluation, or content persistence', () => {
+  it('does not import search, LLM evaluation, or content persistence', () => {
     const source = readFileSync(
       join(__dirname, 'gather-collection.handler.ts'),
       'utf8',
     );
 
     assert.match(source, /enqueueGatherCollection/);
-    assert.doesNotMatch(source, /YoutubeSearchAdapter/);
+    assert.doesNotMatch(source, /BraveSearchAdapter/);
     assert.doesNotMatch(source, /ContentSearchService/);
     assert.doesNotMatch(source, /ContentRelevance/);
     assert.doesNotMatch(source, /OpenAiAdapter/);

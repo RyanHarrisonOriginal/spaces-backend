@@ -52,7 +52,7 @@ export class ReplaceGatherQueriesSaveStrategy
       }
       const rows = await tx.gatherQuery.findMany({
         where: { collectionId },
-        orderBy: { createdAt: 'asc' },
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
       });
       return rows.map((row) => mapper.toDomain(row));
     });

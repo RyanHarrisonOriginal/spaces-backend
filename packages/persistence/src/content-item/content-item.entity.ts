@@ -1,5 +1,6 @@
 export const CONTENT_PROVIDERS = {
   youtube: 'youtube',
+  brave: 'brave',
 } as const;
 
 export type ContentProviderName =

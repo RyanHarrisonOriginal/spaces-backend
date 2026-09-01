@@ -46,11 +46,11 @@ export class ContentSearchService {
 
     for (const query of queries) {
       try {
-        this.logger.info('youtube query executing', { ...fields, query });
+        this.logger.info('search query executing', { ...fields, query });
         const results = await this.searchProvider.search(query);
         succeeded += 1;
         combined.push(...results);
-        this.logger.info('youtube query executed', {
+        this.logger.info('search query executed', {
           ...fields,
           query,
           resultCount: results.length,
@@ -63,11 +63,11 @@ export class ContentSearchService {
           throw error;
         }
         failed += 1;
-        this.logger.warn('youtube query failed', {
+        this.logger.warn('search query failed', {
           ...fields,
           query,
           error:
-            error instanceof Error ? error.message : 'YouTube search failed',
+            error instanceof Error ? error.message : 'Search query failed',
           ...(error instanceof ContentSearchError ? error.details : {}),
         });
         if (
@@ -82,8 +82,8 @@ export class ContentSearchService {
     if (succeeded === 0) {
       throw new ContentSearchError(
         failed > 0
-          ? 'YouTube search failed for all queries'
-          : 'YouTube search failed',
+          ? 'Search failed for all queries'
+          : 'Search failed',
         'provider',
       );
     }

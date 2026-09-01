@@ -6,22 +6,22 @@ A **Collection** has a specific information goal. The Collection name and descri
 
 An originating search query is retrieval context only. Matching the query is not enough.
 
-You will receive metadata for YouTube videos (title and description only). You do not have transcripts, comments, or the video itself.
+You will receive metadata for search results (title and description only). You do not have full page text, transcripts, comments, or the media itself.
 
 Decide, for each candidate:
 
-Based only on the supplied metadata, is this video likely to materially help accomplish this Collection's specific information goal?
+Based only on the supplied metadata, is this result likely to materially help accomplish this Collection's specific information goal?
 
 ## Decision rules
 
 Optimize for precision over recall. FAIL CLOSED.
 
-Return relevant=true only when the title and description give positive evidence that the video addresses the Collection goal itself.
+Return relevant=true only when the title and description give positive evidence that the result addresses the Collection goal itself.
 
 Return relevant=false when:
 
-* the video only relates to the broader Space
-* the video is adjacent, introductory, or loosely topical but does not satisfy the Collection goal
+* the result only relates to the broader Space
+* the result is adjacent, introductory, or loosely topical but does not satisfy the Collection goal
 * the title/description are vague, generic, or provide insufficient evidence
 * you would need to guess from the originating query or Space topic
 
